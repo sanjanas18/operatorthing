@@ -542,6 +542,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useZoom } from './hooks/useZoom';
 import './App.css';
+import videoCapture from './utils/videoCapture';
+
 
 interface EmergencyCall {
   id: string;
@@ -578,6 +580,11 @@ function App() {
 
   const { joinMeeting, stopSpeechRecognition } = useZoom();
 
+
+  const [videoAnalysis, setVideoAnalysis] = useState<any>(null);
+const [frameAnalyzing, setFrameAnalyzing] = useState(false);
+const [capturedFrames, setCapturedFrames] = useState<Array<{ timestamp: string; analysis: any }>>([]);
+const videoAnalysisIntervalRef = useRef<any>(null);
   // Update time every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -638,28 +645,141 @@ function App() {
     };
   }, [liveTranscript.length, activeCall]);
 
-  const generateLiveReport = async () => {
-    if (!activeCall || liveTranscript.length === 0 || reportLoading) return;
+  // AUTO-ANALYZE VIDEO FRAMES WITH CLAUDE VISION
+useEffect(() => {
+  if (activeCall && zoomActive) {
+    const findAndAnalyzeVideo = () => {
+      // Try to find Zoom video element
+      const zoomVideo = document.querySelector('video') as HTMLVideoElement;
+      
+      if (zoomVideo && zoomVideo.videoWidth > 0) {
+        console.log('📹 Found Zoom video, starting Claude Vision analysis...');
+        
+        videoCapture.startCapturing(zoomVideo, async (frameData) => {
+          setFrameAnalyzing(true);
+          
+          try {
+            // Get recent transcript for context
+            const recentTranscript = liveTranscript
+              .slice(-3)
+              .map(t => `[${t.speaker}]: ${t.text}`)
+              .join('\n');
 
-    setReportLoading(true);
-    console.log('🤖 Generating real-time AI report...');
+            const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
+              callId: activeCall.callId,
+              frameData,
+              emergencyType: activeCall.type,
+              recentTranscript,
+            });
 
-    try {
-      const response = await axios.post('http://localhost:3000/api/emergency/generate-report', {
-        transcript: liveTranscript,
-        emergencyType: activeCall.type,
-        location: activeCall.location,
-      });
+            setVideoAnalysis(response.data.analysis);
+            setCapturedFrames(prev => [...prev, {
+              timestamp: new Date().toISOString(),
+              analysis: response.data.analysis,
+            }]);
+            console.log('✅ Claude Vision analysis updated:', response.data.analysis.urgencyLevel);
+          } catch (error) {
+            console.error('❌ Frame analysis failed:', error);
+          } finally {
+            setFrameAnalyzing(false);
+          }
+        }, 10000); // Capture every 10 seconds
 
-      setAiReport(response.data.report);
-      setLastReportTime(new Date());
-      console.log('✅ AI Report updated');
-    } catch (error) {
-      console.error('❌ Failed to generate report:', error);
-    } finally {
-      setReportLoading(false);
+        clearInterval(videoAnalysisIntervalRef.current);
+      }
+    };
+
+    // Keep trying to find video for 30 seconds
+    videoAnalysisIntervalRef.current = setInterval(findAndAnalyzeVideo, 2000);
+    
+    setTimeout(() => {
+      clearInterval(videoAnalysisIntervalRef.current);
+    }, 30000);
+  }
+
+  return () => {
+    videoCapture.stopCapturing();
+    if (videoAnalysisIntervalRef.current) {
+      clearInterval(videoAnalysisIntervalRef.current);
     }
   };
+}, [activeCall, zoomActive, liveTranscript]);
+
+
+
+  // const generateLiveReport = async () => {
+  //   if (!activeCall || liveTranscript.length === 0 || reportLoading) return;
+
+  //   setReportLoading(true);
+  //   console.log('🤖 Generating real-time AI report...');
+
+  //   try {
+  //     const response = await axios.post('http://localhost:3000/api/emergency/generate-report', {
+  //       transcript: liveTranscript,
+  //       emergencyType: activeCall.type,
+  //       location: activeCall.location,
+  //     });
+
+  //     setAiReport(response.data.report);
+  //     setLastReportTime(new Date());
+  //     console.log('✅ AI Report updated');
+  //   } catch (error) {
+  //     console.error('❌ Failed to generate report:', error);
+  //   } finally {
+  //     setReportLoading(false);
+  //   }
+  // };
+
+
+  const generateLiveReport = async () => {
+  if (!activeCall || liveTranscript.length === 0 || reportLoading) return;
+
+  setReportLoading(true);
+  console.log('🤖 Generating real-time AI report...');
+
+  try {
+    const response = await axios.post('http://localhost:3000/api/emergency/generate-report', {
+      transcript: liveTranscript,
+      emergencyType: activeCall.type,
+      location: activeCall.location,
+      videoAnalyses: capturedFrames, // Include video analyses
+    });
+
+    setAiReport(response.data.report);
+    setLastReportTime(new Date());
+    console.log('✅ AI Report updated with video intelligence');
+  } catch (error) {
+    console.error('❌ Failed to generate report:', error);
+  } finally {
+    setReportLoading(false);
+  }
+};
+
+
+const downloadCallReport = async () => {
+  if (!activeCall) return;
+
+  try {
+    const response = await axios.get(`http://localhost:3000/api/emergency/download/${activeCall.callId}`);
+    
+    // Create downloadable JSON file
+    const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `emergency-report-${activeCall.callId}-${new Date().toISOString()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    console.log('📥 Downloaded complete call report');
+    alert('✅ Report downloaded! Includes:\n• Call details\n• Full transcript\n• Video analyses\n• Saved image paths');
+  } catch (error) {
+    console.error('❌ Failed to download report:', error);
+    alert('Failed to download report. Check console for details.');
+  }
+};
 
   const joinCall = async (call: EmergencyCall) => {
     console.log('🔵 Join call clicked:', call);
@@ -1124,7 +1244,202 @@ function App() {
                   )}
                 </div>
 
+                {/* Computer Vision Analysis Panel - Claude Vision */}
+{videoAnalysis && (
+  <div className="info-section">
+    <div className="section-title">
+      👁️ Live Video Analysis (Claude Vision)
+      {frameAnalyzing && (
+        <span style={{ marginLeft: '10px', fontSize: '12px', color: '#3b82f6' }}>
+          ● Analyzing...
+        </span>
+      )}
+      <span style={{ marginLeft: '10px', fontSize: '11px', color: '#64748b' }}>
+        ({capturedFrames.length} frames analyzed)
+      </span>
+    </div>
+    <div style={{
+      background: 'rgba(239, 68, 68, 0.1)',
+      border: `2px solid ${
+        videoAnalysis.urgencyLevel === 'critical' ? '#ef4444' :
+        videoAnalysis.urgencyLevel === 'high' ? '#f97316' :
+        videoAnalysis.urgencyLevel === 'medium' ? '#f59e0b' : '#10b981'
+      }`,
+      borderRadius: '12px',
+      padding: '20px',
+    }}>
+      {/* Urgency Badge */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        marginBottom: '15px',
+      }}>
+        <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>
+          Scene Urgency:
+        </span>
+        <span style={{
+          padding: '8px 16px',
+          borderRadius: '8px',
+          fontWeight: 'bold',
+          fontSize: '14px',
+          background: videoAnalysis.urgencyLevel === 'critical' ? '#ef4444' :
+                      videoAnalysis.urgencyLevel === 'high' ? '#f97316' :
+                      videoAnalysis.urgencyLevel === 'medium' ? '#f59e0b' : '#10b981',
+          color: 'white',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+        }}>
+          {videoAnalysis.urgencyLevel}
+        </span>
+      </div>
+
+      {/* Hazards */}
+      {videoAnalysis.hazards && videoAnalysis.hazards.length > 0 && (
+        <div style={{ marginBottom: '15px' }}>
+          <div style={{ 
+            fontSize: '13px', 
+            color: '#ef4444', 
+            fontWeight: 'bold', 
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            ⚠️ HAZARDS DETECTED:
+          </div>
+          <div style={{ 
+            background: 'rgba(239, 68, 68, 0.1)',
+            borderLeft: '3px solid #ef4444',
+            padding: '10px 12px',
+            borderRadius: '4px',
+          }}>
+            {videoAnalysis.hazards.map((hazard: string, idx: number) => (
+              <div key={idx} style={{ 
+                fontSize: '13px', 
+                color: '#f1f5f9', 
+                marginBottom: '6px',
+                lineHeight: '1.6',
+              }}>
+                • {hazard}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Injuries */}
+      {videoAnalysis.injuries && videoAnalysis.injuries.length > 0 && (
+        <div style={{ marginBottom: '15px' }}>
+          <div style={{ 
+            fontSize: '13px', 
+            color: '#f97316', 
+            fontWeight: 'bold', 
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            🩹 INJURIES/MEDICAL OBSERVED:
+          </div>
+          <div style={{ 
+            background: 'rgba(249, 115, 22, 0.1)',
+            borderLeft: '3px solid #f97316',
+            padding: '10px 12px',
+            borderRadius: '4px',
+          }}>
+            {videoAnalysis.injuries.map((injury: string, idx: number) => (
+              <div key={idx} style={{ 
+                fontSize: '13px', 
+                color: '#f1f5f9', 
+                marginBottom: '6px',
+                lineHeight: '1.6',
+              }}>
+                • {injury}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Environment */}
+      <div style={{ marginBottom: '15px' }}>
+        <div style={{ 
+          fontSize: '13px', 
+          color: '#3b82f6', 
+          fontWeight: 'bold', 
+          marginBottom: '8px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+        }}>
+          🏠 ENVIRONMENT ASSESSMENT:
+        </div>
+        <div style={{ 
+          background: 'rgba(59, 130, 246, 0.1)',
+          borderLeft: '3px solid #3b82f6',
+          padding: '10px 12px',
+          borderRadius: '4px',
+          fontSize: '13px',
+          color: '#cbd5e1',
+          lineHeight: '1.6',
+        }}>
+          {videoAnalysis.environmentAssessment}
+        </div>
+      </div>
+
+      {/* Recommendations */}
+      {videoAnalysis.recommendations && videoAnalysis.recommendations.length > 0 && (
+        <div>
+          <div style={{ 
+            fontSize: '13px', 
+            color: '#10b981', 
+            fontWeight: 'bold', 
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            💡 VISUAL INTELLIGENCE RECOMMENDATIONS:
+          </div>
+          <div style={{ 
+            background: 'rgba(16, 185, 129, 0.1)',
+            borderLeft: '3px solid #10b981',
+            padding: '10px 12px',
+            borderRadius: '4px',
+          }}>
+            {videoAnalysis.recommendations.map((rec: string, idx: number) => (
+              <div key={idx} style={{ 
+                fontSize: '13px', 
+                color: '#cbd5e1', 
+                marginBottom: '6px',
+                lineHeight: '1.6',
+              }}>
+                {idx + 1}. {rec}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
                 <div className="action-section">
+
+                    {activeCall && (
+    <button 
+      className="end-call-btn" 
+      onClick={downloadCallReport}
+      style={{
+        padding: '14px 28px',
+        fontSize: '16px',
+        fontWeight: 'bold',
+        background: '#3b82f6',
+        marginBottom: '12px',
+        minHeight: '50px',
+      }}
+    >
+      <span className="btn-icon" style={{ fontSize: '20px' }}>📥</span>
+      <span>DOWNLOAD FULL REPORT</span>
+    </button>
+  )}
                   <button 
                     className="end-call-btn" 
                     onClick={endCall}

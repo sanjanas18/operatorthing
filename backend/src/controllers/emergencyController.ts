@@ -108,7 +108,7 @@
 import type { Request, Response } from 'express';
 import ZoomService from '../services/ZoomService.js';
 import PerplexityService from '../services/PerplexityService.js';
-
+import VisionAnalysisService from '../services/VisionAnalysisService.js';
 
 const activeCalls = new Map();
 
@@ -150,6 +150,8 @@ const activeCalls = new Map();
 //     res.status(500).json({ error: error.message });
 //   }
 // };
+
+
 
 export const createCall = async (req: Request, res: Response) => {
   try {
@@ -295,6 +297,143 @@ export const generateReport = async (req: Request, res: Response) => {
     res.json({ report });
   } catch (error: any) {
     console.error('Error generating report:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Store video frames and analyses
+const callVideoFrames = new Map<string, Array<{
+  frameData: string;
+  imagePath: string;
+  analysis: any;
+  timestamp: string;
+}>>();
+
+export const analyzeVideoFrame = async (req: Request, res: Response) => {
+  try {
+    const { callId, frameData, emergencyType, recentTranscript } = req.body;
+
+    if (!callId || !frameData || typeof callId !== 'string') {
+      return res.status(400).json({ error: 'Missing callId or frameData' });
+    }
+
+    console.log('🔍 Analyzing video frame for call:', callId);
+
+    // Analyze the frame with Claude Vision
+    const { analysis, imagePath } = await VisionAnalysisService.analyzeEmergencyFrame(
+      frameData,
+      callId,
+      emergencyType || 'unknown',
+      recentTranscript
+    );
+
+    // Store frame analysis
+    if (!callVideoFrames.has(callId)) {
+      callVideoFrames.set(callId, []);
+    }
+    
+    const frames = callVideoFrames.get(callId)!;
+    frames.push({
+      frameData,
+      imagePath,
+      analysis,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Keep only last 20 frames to save memory
+    if (frames.length > 20) {
+      frames.shift();
+    }
+
+    res.json({ 
+      analysis,
+      imagePath,
+      totalFramesAnalyzed: frames.length 
+    });
+  } catch (error: any) {
+    console.error('Error analyzing frame:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCallReport = async (req: Request, res: Response) => {
+  try {
+    const { callId } = req.params;
+    const call = activeCalls.get(callId);
+
+    if (!call) {
+      return res.status(404).json({ error: 'Call not found' });
+    }
+
+     if (!callId || typeof callId !== 'string') {
+      return res.status(400).json({ error: 'Invalid callId' });
+    }
+
+    // Get all analyses for this call
+    const videoFrames = callVideoFrames.get(callId) || [];
+    
+    res.json({
+      call,
+      videoAnalyses: videoFrames.map(f => ({
+        timestamp: f.timestamp,
+        analysis: f.analysis,
+        imagePath: f.imagePath,
+      })),
+      totalFrames: videoFrames.length,
+    });
+  } catch (error: any) {
+    console.error('Error getting call report:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const downloadCallData = async (req: Request, res: Response) => {
+  try {
+    const { callId } = req.params;
+    const call = activeCalls.get(callId);
+
+
+    if (!call) {
+      return res.status(404).json({ error: 'Call not found' });
+    }
+
+     if (!callId || typeof callId !== 'string') {
+      return res.status(400).json({ error: 'Invalid callId' });
+    }
+
+    const videoFrames = callVideoFrames.get(callId) || [];
+    const storedImages = VisionAnalysisService.getStoredFrames(callId);
+
+    // Get transcript from localStorage (if saved)
+    // This will be the final transcript saved when call ended
+
+    // Compile complete report
+    const completeReport = {
+      callInfo: {
+        callId: call.callId,
+        emergencyType: call.emergencyType,
+        location: call.location,
+        status: call.status,
+        startTime: call.createdAt,
+        endTime: call.endedAt || new Date().toISOString(),
+      },
+      videoAnalyses: videoFrames.map(f => ({
+        timestamp: f.timestamp,
+        urgencyLevel: f.analysis.urgencyLevel,
+        hazards: f.analysis.hazards,
+        injuries: f.analysis.injuries,
+        environment: f.analysis.environmentAssessment,
+        recommendations: f.analysis.recommendations,
+        rawAnalysis: f.analysis.rawAnalysis,
+      })),
+      savedImagePaths: storedImages,
+      totalFramesAnalyzed: videoFrames.length,
+      reportGeneratedAt: new Date().toISOString(),
+    };
+
+    res.json(completeReport);
+  } catch (error: any) {
+    console.error('Error downloading call data:', error);
     res.status(500).json({ error: error.message });
   }
 };
