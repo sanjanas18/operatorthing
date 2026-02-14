@@ -5,6 +5,7 @@ import {
   getActiveCalls,
   getCallDetails,
   endCall,
+generateReport,
 } from '../controllers/emergencyController.js';
 
 const router = express.Router();
@@ -14,5 +15,6 @@ router.get('/join/:callId', joinCall);         // Join existing call
 router.get('/active', getActiveCalls);         // List all calls
 router.get('/:callId', getCallDetails);        // Get call info
 router.post('/:callId/end', endCall);          // End call
+router.post('/generate-report', generateReport); 
 
 export default router;

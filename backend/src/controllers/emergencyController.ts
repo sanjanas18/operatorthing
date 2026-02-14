@@ -107,6 +107,8 @@
 
 import type { Request, Response } from 'express';
 import ZoomService from '../services/ZoomService.js';
+import PerplexityService from '../services/PerplexityService.js';
+
 
 const activeCalls = new Map();
 
@@ -272,4 +274,27 @@ export const endCall = (req: Request, res: Response) => {
   call.endedAt = new Date().toISOString();
 
   res.json({ message: 'Call ended', call });
+};
+
+export const generateReport = async (req: Request, res: Response) => {
+  try {
+    const { transcript, emergencyType, location } = req.body;
+
+    if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
+      return res.status(400).json({ error: 'Transcript is required' });
+    }
+
+    console.log('📝 Generating report for', transcript.length, 'transcript items');
+
+    const report = await PerplexityService.generateReport(
+      transcript,
+      emergencyType || 'unknown',
+      location || {}
+    );
+
+    res.json({ report });
+  } catch (error: any) {
+    console.error('Error generating report:', error);
+    res.status(500).json({ error: error.message });
+  }
 };
