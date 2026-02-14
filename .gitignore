@@ -137,3 +137,36 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+node_modules/
+dist/
+build/
+.env
+*.log
+apps/mobile/ios/Pods/
+apps/mobile/android/.gradle/
+
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+build/
+dist/
+*/build/
+*/dist/
+
+# Environment
+.env
+*/.env
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# React Native
+EmergencyCallerApp/ios/Pods/
+EmergencyCallerApp/android/.gradle/
+EmergencyCallerApp/android/app/build/
