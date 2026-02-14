@@ -663,6 +663,11 @@ function App() {
 
   const joinCall = async (call: EmergencyCall) => {
     console.log('🔵 Join call clicked:', call);
+
+      const zoomContainer = document.getElementById('zmmtg-root');
+  if (zoomContainer) {
+    zoomContainer.innerHTML = ''; // Clear any existing content
+  }
     setActiveCall(call);
     setZoomActive(true);
     setLiveTranscript([]);
@@ -722,6 +727,9 @@ function App() {
       if (zoomContainer) {
         zoomContainer.style.display = 'none';
       }
+
+    setActiveCall(null);
+    setZoomActive(false);
     }
   };
 

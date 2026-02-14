@@ -34,8 +34,8 @@ export default function EmergencyCallScreen() {
       console.log('✅ Meeting created:', meetingNumber);
 
       // Build Zoom web client URL
-    //   const zoomUrl = `https://zoom.us/wc/${meetingNumber}/join?pwd=${password}`;
-    const zoomUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
+    const zoomUrl = `https://zoom.us/wc/${meetingNumber}/join?pwd=${password}`;
+    //const zoomUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
 
       // Open in Safari
       const canOpen = await Linking.canOpenURL(zoomUrl);
