@@ -165,9 +165,6 @@ private async getAccessToken(): Promise<string> {
   }
 
   // HARDCODED - Copy the FULL Client Secret from Zoom
-  const accountId = 'ykNo3oL7R925z2z5xVBYkg';
-  const clientId = 'MvFG4tfbSvu34hYIlmsxQw';
-  const clientSecret: string = 'p2Rwy1Poj68rONip7RGvqcp9SjESVqUf'; // ← PASTE FULL SECRET HERE (go to Zoom, click "View", copy ALL of it)
 
   console.log('🔍 Hardcoded credentials test:');
   console.log('  Account ID:', accountId);
@@ -240,6 +237,7 @@ async createMeeting(data: {
           audio: 'both',
           auto_recording: 'cloud',
           approval_type: 0,
+          audio_transcription: true, 
         },
       },
       {

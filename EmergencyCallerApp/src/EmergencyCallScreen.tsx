@@ -29,8 +29,15 @@ export default function EmergencyCallScreen() {
         },
       });
 
-      const { meetingNumber, password } = response.data;
-      const zoomUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
+      const { meetingNumber, signature, sdkKey, userName, password } = response.data;
+
+      console.log('✅ Meeting created:', meetingNumber);
+
+      // Build Zoom web client URL
+    //   const zoomUrl = `https://zoom.us/wc/${meetingNumber}/join?pwd=${password}`;
+    const zoomUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
+
+      // Open in Safari
       const canOpen = await Linking.canOpenURL(zoomUrl);
 
       if (canOpen) {
