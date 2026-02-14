@@ -213,6 +213,8 @@ const joinMeeting = async (callId: string) => {
 
     window.ZoomMtg.init({
       leaveUrl: window.location.origin,
+      patchJsMedia: true,
+      leaveOnPageUnload: true, 
       success: () => {
         console.log('✅ Init success, joining with password:', password);
         
