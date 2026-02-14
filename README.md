@@ -9,7 +9,7 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
+git clone
 cd operatorthing
 ```
 
