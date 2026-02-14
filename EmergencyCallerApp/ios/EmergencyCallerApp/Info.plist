@@ -56,5 +56,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access needed for emergency video calls</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access needed for emergency calls</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location needed to dispatch emergency services</string>
 </dict>
 </plist>

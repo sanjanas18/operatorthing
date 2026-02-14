@@ -210,64 +210,6 @@ private async getAccessToken(): Promise<string> {
 
 
 
-  // Create actual Zoom meeting - NO PASSWORD
-//   async createMeeting(data: {
-//     emergencyType: string;
-//     location: { latitude: number; longitude: number; address?: string };
-//   }): Promise<{
-//     meetingNumber: string;
-//     callerId: string;
-//     operatorId: string;
-//     sdkKey: string;
-//   }> {
-//     try {
-//       const token = await this.getAccessToken();
-      
-//       console.log('📞 Creating Zoom meeting (NO PASSWORD)...');
-      
-//       const response = await axios.post(
-//         'https://api.zoom.us/v2/users/me/meetings',
-//         {
-//           topic: `Emergency: ${data.emergencyType}`,
-//           type: 1, // Instant meeting
-//           settings: {
-//             host_video: true,
-//             participant_video: true,
-//             join_before_host: true,
-//             waiting_room: false,
-//             meeting_authentication: false, // ← NO PASSWORD
-//             password: false, // ← DISABLE PASSWORD
-//             audio: 'both',
-//             auto_recording: 'cloud',
-//             approval_type: 0,
-//           },
-//         },
-//         {
-//           headers: {
-//             Authorization: `Bearer ${token}`,
-//             'Content-Type': 'application/json',
-//           },
-//         }
-//       );
-
-//       const meetingNumber = response.data.id.toString();
-//       const callerId = `caller_${Date.now()}`;
-//       const operatorId = `operator_${Date.now()}`;
-
-//       console.log('✅ Created meeting:', meetingNumber, '(NO PASSWORD)');
-
-//       return {
-//         meetingNumber,
-//         callerId,
-//         operatorId,
-//         sdkKey: process.env.ZOOM_SDK_KEY || '',
-//       };
-//     } catch (error: any) {
-//       console.error('❌ Create meeting error:', error.response?.data || error.message);
-//       throw new Error('Failed to create meeting: ' + (error.response?.data?.message || error.message));
-//     }
-//   }
-
 async createMeeting(data: {
   emergencyType: string;
   location: { latitude: number; longitude: number; address?: string };
