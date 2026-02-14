@@ -646,24 +646,106 @@ const videoAnalysisIntervalRef = useRef<any>(null);
   }, [liveTranscript.length, activeCall]);
 
   // AUTO-ANALYZE VIDEO FRAMES WITH CLAUDE VISION
+// useEffect(() => {
+//   if (activeCall && zoomActive) {
+//     const findAndAnalyzeVideo = () => {
+//       // Try to find Zoom video element
+//       const zoomVideo = document.querySelector('video') as HTMLVideoElement;
+      
+//       if (zoomVideo && zoomVideo.videoWidth > 0) {
+//         console.log('📹 Found Zoom video, starting Claude Vision analysis...');
+        
+//         videoCapture.startCapturing(zoomVideo, async (frameData) => {
+//           setFrameAnalyzing(true);
+          
+//           try {
+//             // Get recent transcript for context
+//             const recentTranscript = liveTranscript
+//               .slice(-3)
+//               .map(t => `[${t.speaker}]: ${t.text}`)
+//               .join('\n');
+
+//             const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
+//               callId: activeCall.callId,
+//               frameData,
+//               emergencyType: activeCall.type,
+//               recentTranscript,
+//             });
+
+//             setVideoAnalysis(response.data.analysis);
+//             setCapturedFrames(prev => [...prev, {
+//               timestamp: new Date().toISOString(),
+//               analysis: response.data.analysis,
+//             }]);
+//             console.log('✅ Claude Vision analysis updated:', response.data.analysis.urgencyLevel);
+//           } catch (error) {
+//             console.error('❌ Frame analysis failed:', error);
+//           } finally {
+//             setFrameAnalyzing(false);
+//           }
+//         }, 10000); // Capture every 10 seconds
+
+//         clearInterval(videoAnalysisIntervalRef.current);
+//       }
+//     };
+
+//     // Keep trying to find video for 30 seconds
+//     videoAnalysisIntervalRef.current = setInterval(findAndAnalyzeVideo, 2000);
+    
+//     setTimeout(() => {
+//       clearInterval(videoAnalysisIntervalRef.current);
+//     }, 30000);
+//   }
+
+//   return () => {
+//     videoCapture.stopCapturing();
+//     if (videoAnalysisIntervalRef.current) {
+//       clearInterval(videoAnalysisIntervalRef.current);
+//     }
+//   };
+// }, [activeCall, zoomActive, liveTranscript]);
+
+
+// AUTO-ANALYZE VIDEO FRAMES WITH CLAUDE VISION
 useEffect(() => {
   if (activeCall && zoomActive) {
     const findAndAnalyzeVideo = () => {
-      // Try to find Zoom video element
-      const zoomVideo = document.querySelector('video') as HTMLVideoElement;
+      // OLD - WRONG: Gets first video (your camera)
+      // const zoomVideo = document.querySelector('video') as HTMLVideoElement;
+      
+      // NEW - CORRECT: Get the REMOTE participant video
+      const zoomVideo = document.querySelector('video[id*="video-canvas"]') as HTMLVideoElement
+        || document.querySelector('video[id*="remote"]') as HTMLVideoElement
+        || document.querySelector('video[aria-label*="participant"]') as HTMLVideoElement
+        || Array.from(document.querySelectorAll('video')).find(v => {
+            // Skip videos that are your own camera (usually smaller or in corner)
+            const width = v.videoWidth;
+            const height = v.videoHeight;
+            // Remote video is usually larger
+            return width > 320 && height > 240;
+          }) as HTMLVideoElement;
+      
+      console.log('🔍 Looking for REMOTE video element...', {
+        found: !!zoomVideo,
+        videoWidth: zoomVideo?.videoWidth,
+        videoHeight: zoomVideo?.videoHeight,
+        videoId: zoomVideo?.id,
+      });
       
       if (zoomVideo && zoomVideo.videoWidth > 0) {
-        console.log('📹 Found Zoom video, starting Claude Vision analysis...');
+        console.log('📹 Found REMOTE Zoom video, starting Claude Vision analysis...');
         
         videoCapture.startCapturing(zoomVideo, async (frameData) => {
+          console.log('📸 CAPTURED REMOTE FRAME! Length:', frameData.length);
           setFrameAnalyzing(true);
           
           try {
-            // Get recent transcript for context
             const recentTranscript = liveTranscript
               .slice(-3)
               .map(t => `[${t.speaker}]: ${t.text}`)
               .join('\n');
+
+            console.log('🚀 Sending remote frame to backend...');
 
             const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
               callId: activeCall.callId,
@@ -671,6 +753,8 @@ useEffect(() => {
               emergencyType: activeCall.type,
               recentTranscript,
             });
+
+            console.log('✅ Got response from backend:', response.data);
 
             setVideoAnalysis(response.data.analysis);
             setCapturedFrames(prev => [...prev, {
@@ -683,13 +767,12 @@ useEffect(() => {
           } finally {
             setFrameAnalyzing(false);
           }
-        }, 10000); // Capture every 10 seconds
+        }, 10000);
 
         clearInterval(videoAnalysisIntervalRef.current);
       }
     };
 
-    // Keep trying to find video for 30 seconds
     videoAnalysisIntervalRef.current = setInterval(findAndAnalyzeVideo, 2000);
     
     setTimeout(() => {
@@ -704,8 +787,6 @@ useEffect(() => {
     }
   };
 }, [activeCall, zoomActive, liveTranscript]);
-
-
 
   // const generateLiveReport = async () => {
   //   if (!activeCall || liveTranscript.length === 0 || reportLoading) return;
@@ -730,6 +811,20 @@ useEffect(() => {
   //   }
   // };
 
+  // Add this inside your App component (before the return)
+const debugVideoElements = () => {
+  const videos = document.querySelectorAll('video');
+  console.log('📹 All video elements:', videos.length);
+  videos.forEach((video, idx) => {
+    console.log(`Video ${idx}:`, {
+      id: video.id,
+      width: video.videoWidth,
+      height: video.videoHeight,
+      className: video.className,
+      ariaLabel: video.getAttribute('aria-label'),
+    });
+  });
+};
 
   const generateLiveReport = async () => {
   if (!activeCall || liveTranscript.length === 0 || reportLoading) return;

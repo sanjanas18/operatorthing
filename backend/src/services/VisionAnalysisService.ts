@@ -271,10 +271,13 @@ Analyze this video frame and provide a structured emergency assessment:
 
 5. RECOMMENDATIONS: Specific actionable steps for the operator or incoming emergency units (equipment needed, number of units, special precautions, etc.)
 
+6. Be extremely detailed and thorough!!! Note down EVERYTHING you see even if there is no emergency.
+
 Be extremely detailed and thorough. Lives depend on catching every detail. Focus on actionable intelligence.`;
 
       const response = await client.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        // model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 1024,
         messages: [
           {
