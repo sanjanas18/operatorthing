@@ -1,7 +1,6 @@
-
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { io, Socket } from 'socket.io-client';
 import { useZoom } from './hooks/useZoom';
 import './App.css';
 
@@ -25,6 +24,7 @@ function App() {
   const [activeCall, setActiveCall] = useState<EmergencyCall | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [zoomActive, setZoomActive] = useState(false);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   // Update time every second
   useEffect(() => {
@@ -32,34 +32,60 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Set up socket connection and listener for call ended
+  useEffect(() => {
+    const newSocket = io('http://localhost:3000');
+    setSocket(newSocket);
+
+    newSocket.on('operator:call-ended', (data: { callId: string; reason: string }) => {
+      console.log('Received call-ended event:', data);
+      
+      setCalls(prevCalls => {
+        const filtered = prevCalls.filter(c => c.callId !== data.callId);
+        console.log('Calls after removal:', filtered.length);
+        return filtered;
+      });
+      
+      setActiveCall(prevActive => {
+        if (prevActive?.callId === data.callId) {
+          console.log('Clearing active call');
+          setZoomActive(false);
+          return null;
+        }
+        return prevActive;
+      });
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
+
   // Fetch real calls from backend
   useEffect(() => {
     const fetchCalls = async () => {
       try {
-        console.log('📡 Fetching calls from backend...');
+        console.log('Fetching calls from backend...');
         const response = await axios.get('http://localhost:3000/api/emergency/active');
-        console.log('📡 Backend response:', response.data);
+        console.log('Backend response:', response.data);
         
-        const backendCalls = response.data.calls.map((call: any) => {
-          console.log('📞 Processing call:', call);
-          return {
-            id: call.callId,
-            callId: call.callId,
-            type: call.emergencyType as 'medical' | 'fire' | 'police' | 'other',
-            location: {
-              lat: call.location.latitude,
-              lng: call.location.longitude,
-              address: call.location.address || 'Unknown location',
-            },
-            status: call.status === 'active' ? 'incoming' as const : 'ended' as const,
-            timestamp: call.createdAt,
-          };
-        });
+        const backendCalls = response.data.calls.map((call: any) => ({
+          id: call.callId,
+          callId: call.callId,
+          type: call.emergencyType as 'medical' | 'fire' | 'police' | 'other',
+          location: {
+            lat: call.location.latitude,
+            lng: call.location.longitude,
+            address: call.location.address || 'Unknown location',
+          },
+          status: call.status === 'active' ? 'incoming' as const : 'ended' as const,
+          timestamp: call.createdAt,
+        }));
         
-        console.log('✅ Final calls:', backendCalls);
+        console.log('Final calls:', backendCalls);
         setCalls(backendCalls);
       } catch (error) {
-        console.error('❌ Failed to fetch calls:', error);
+        console.error('Failed to fetch calls:', error);
       }
     };
 
@@ -69,51 +95,28 @@ function App() {
   }, []);
 
   const joinCall = async (call: EmergencyCall) => {
-    console.log('🔵 Join call clicked:', call);
+    console.log('Join call clicked:', call);
     setActiveCall(call);
     setZoomActive(true);
     setCalls(calls.map(c => 
       c.id === call.id ? { ...c, status: 'active' as const } : c
     ));
     
-    // Join Zoom meeting
     if (call.callId) {
-      console.log('📞 Attempting to join Zoom meeting:', call.callId);
+      console.log('Attempting to join Zoom meeting:', call.callId);
       await joinMeeting(call.callId);
     }
   };
 
   const endCall = () => {
+    console.log('END CALL CLICKED');
+    
     if (activeCall) {
-      setCalls(calls.map(c => 
-        c.id === activeCall.id ? { ...c, status: 'ended' as const } : c
-      ));
-      setActiveCall(null);
-      setZoomActive(false);
+      console.log('Ending call:', activeCall.callId);
       
-      // Hide Zoom interface
-      const zoomContainer = document.getElementById('zmmtg-root');
-      if (zoomContainer) {
-        zoomContainer.style.display = 'none';
+      if (window.ZoomMtg) {
+        window.ZoomMtg.leaveMeeting({});
       }
-    }
-  };
-
-  const getEmergencyIcon = (type: string) => {
-    switch (type) {
-      case 'medical': return '🚑';
-      case 'fire': return '🚒';
-      case 'police': return '🚓';
-      default: return '⚠️';
-    }
-  };
-
-  const getEmergencyColor = (type: string) => {
-    switch (type) {
-      case 'medical': return '#ef4444';
-      case 'fire': return '#f97316';
-      case 'police': return '#3b82f6';
-      default: return '#6b7280';
     }
   };
 
@@ -131,40 +134,11 @@ function App() {
 
   return (
     <div className="app">
-      {/* Zoom Container - Full Screen Overlay */}
-      {/* <div 
+      {/* Zoom Container - Left half when active */}
+      <div 
         id="zmmtg-root" 
-        style={{
-          display: zoomActive ? 'block' : 'none',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          zIndex: 9999,
-          background: '#000'
-        }}
-      ></div> */}
-
-      {/* Zoom Container - CORNER WINDOW instead of fullscreen */}
-{/* Zoom Container - Medium corner window */}
-<div 
-  id="zmmtg-root" 
-  style={{
-    display: zoomActive ? 'block' : 'none',
-    position: 'fixed',
-    bottom: '20px',
-    right: '20px',
-    width: '1300px',
-    height: '1000px',
-    zIndex: 9999,
-    background: '#000',
-    borderRadius: '12px',
-    overflow: 'visible', // Show controls
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-    border: '2px solid rgba(16, 185, 129, 0.5)'
-  }}
-></div>
+        className={zoomActive ? 'zoom-container-active' : 'zoom-container-hidden'}
+      ></div>
 
       {/* Top Navigation Bar */}
       <nav className="navbar">
@@ -200,8 +174,8 @@ function App() {
         </div>
       </nav>
 
-      {/* Main Dashboard */}
-      <div className="dashboard">
+      {/* Main Dashboard - Adjusts based on zoom state */}
+      <div className={`dashboard ${zoomActive ? 'split-view' : ''}`}>
         {/* Stats Bar */}
         <div className="stats-bar">
           <div className="stat-card">
@@ -254,15 +228,14 @@ function App() {
               {calls.filter(c => c.status !== 'ended').map((call, index) => (
                 <div 
                   key={call.id} 
-                  className={`call-card ${call.type} ${call.status === 'active' ? 'active' : ''}`}
+                  className={`call-card ${call.status === 'active' ? 'active' : ''}`}
                   style={{ 
                     animationDelay: `${index * 0.1}s`,
                     cursor: call.status === 'incoming' ? 'pointer' : 'default',
-                    border: call.status === 'incoming' ? '3px solid #10b981' : undefined,
+                    border: call.status === 'incoming' ? '3px solid #10b981' : '2px solid rgba(148, 163, 184, 0.1)',
                     boxShadow: call.status === 'incoming' ? '0 0 20px rgba(16, 185, 129, 0.3)' : undefined
                   }}
                   onClick={() => {
-                    console.log('🔘 Card clicked:', call.id, 'Status:', call.status);
                     if (call.status === 'incoming') {
                       joinCall(call);
                     }
@@ -274,9 +247,14 @@ function App() {
                   
                   <div className="call-content">
                     <div className="call-header-row">
-                      <div className="emergency-badge" style={{ background: getEmergencyColor(call.type) }}>
-                        <span className="badge-icon">{getEmergencyIcon(call.type)}</span>
-                        <span className="badge-text">{call.type.toUpperCase()}</span>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        fontWeight: 700, 
+                        color: '#cbd5e1',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Emergency Call
                       </div>
                       <div className="call-time">{getTimeSince(call.timestamp)}</div>
                     </div>
@@ -298,18 +276,16 @@ function App() {
                     </div>
 
                     {call.status === 'incoming' && (
-                      <div style={{ 
-                        marginTop: '12px', 
-                        padding: '12px', 
-                        background: 'rgba(16, 185, 129, 0.1)',
-                        borderRadius: '8px',
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        color: '#10b981',
-                        fontSize: '16px'
-                      }}>
-                        👆 CLICK CARD TO ANSWER CALL
-                      </div>
+                      <button 
+                        className="action-button join"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          joinCall(call);
+                        }}
+                      >
+                        <span className="button-icon"></span>
+                        Answer Call
+                      </button>
                     )}
 
                     {call.status === 'active' && (
@@ -321,9 +297,9 @@ function App() {
                         textAlign: 'center',
                         fontWeight: 'bold',
                         color: '#ef4444',
-                        fontSize: '16px'
+                        fontSize: '14px'
                       }}>
-                        🔴 CALL IN PROGRESS
+                        CALL IN PROGRESS
                       </div>
                     )}
                   </div>
@@ -332,18 +308,15 @@ function App() {
 
               {calls.filter(c => c.status !== 'ended').length === 0 && (
                 <div className="empty-queue">
-                  <div className="empty-icon">✅</div>
+                  <div className="empty-icon">✓</div>
                   <div className="empty-title">All Clear</div>
                   <div className="empty-subtitle">No pending emergency calls</div>
-                  <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
-                    Create a test call in Postman to see it appear here
-                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Active Call Panel */}
+          {/* Active Call Panel - Right side when Zoom is active */}
           <div className="active-panel">
             <div className="panel-header">
               <h2>Active Response</h2>
@@ -357,19 +330,12 @@ function App() {
 
             {activeCall ? (
               <div className="active-content">
-                <div className="emergency-header" style={{ background: getEmergencyColor(activeCall.type) }}>
-                  <div className="header-icon">{getEmergencyIcon(activeCall.type)}</div>
-                  <div className="header-text">
-                    <div className="header-title">{activeCall.type.toUpperCase()} EMERGENCY</div>
-                    <div className="header-subtitle">Response in Progress</div>
-                  </div>
-                </div>
-
+                {/* Caller Information */}
                 <div className="info-section">
-                  <div className="section-title">📋 Call Information</div>
+                  <div className="section-title">📋 Caller Information</div>
                   <div className="info-grid">
                     <div className="info-item">
-                      <span className="info-label">Caller</span>
+                      <span className="info-label">Caller Name</span>
                       <span className="info-value">{activeCall.callerName || 'Unknown'}</span>
                     </div>
                     <div className="info-item">
@@ -381,12 +347,13 @@ function App() {
                       <span className="info-value">#{activeCall.id.slice(-6)}</span>
                     </div>
                     <div className="info-item">
-                      <span className="info-label">Priority</span>
-                      <span className="info-value priority-high">HIGH</span>
+                      <span className="info-label">Status</span>
+                      <span className="info-value priority-high">LIVE</span>
                     </div>
                   </div>
                 </div>
 
+                {/* Location Details */}
                 <div className="info-section">
                   <div className="section-title">📍 Location Details</div>
                   <div className="location-card">
@@ -397,46 +364,55 @@ function App() {
                   </div>
                 </div>
 
+                {/* Live Transcription */}
                 <div className="info-section">
-                  <div className="section-title">📹 Live Video Feed</div>
-                  <div style={{
-                    padding: '20px',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    borderRadius: '12px',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎥</div>
-                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981', marginBottom: '8px' }}>
-                      Zoom Video Call Active
+                  <div className="section-title">🎤 Live Transcription</div>
+                  <div className="transcription-box">
+                    <div className="transcription-status">
+                      <span className="pulse-dot"></span>
+                      <span>Listening...</span>
                     </div>
-                    <div style={{ fontSize: '14px', color: '#666' }}>
-                      Video call is running in full screen overlay
+                    <div className="transcription-content">
+                      <p style={{ fontStyle: 'italic', color: '#94a3b8' }}>
+                        Transcription will appear here in real-time...
+                      </p>
                     </div>
                   </div>
                 </div>
 
+                {/* AI Report Generation */}
+                <div className="info-section">
+                  <div className="section-title">🤖 AI Report Generation</div>
+                  <div className="report-box">
+                    <div className="report-status">
+                      <span className="pulse-dot"></span>
+                      <span>Generating incident report...</span>
+                    </div>
+                    <div className="report-content">
+                      <p style={{ fontStyle: 'italic', color: '#94a3b8' }}>
+                        AI-powered summary and recommendations will be generated automatically...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* End Call Button */}
                 <div className="action-section">
                   <button 
                     className="end-call-btn" 
                     onClick={endCall}
-                    style={{
-                      padding: '16px 32px',
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      minHeight: '60px',
-                    }}
                   >
-                    <span className="btn-icon" style={{ fontSize: '24px' }}>📞</span>
-                    <span>END CALL</span>
+                    <span className="btn-icon">📞</span>
+                    End Call
                   </button>
                 </div>
               </div>
             ) : (
               <div className="no-active-call">
-                <div className="no-call-icon">💼</div>
+                <div className="no-call-icon">📞</div>
                 <div className="no-call-title">No Active Call</div>
                 <div className="no-call-subtitle">
-                  Click on a call card in the queue to begin response
+                  Select a call from the queue to begin response
                 </div>
               </div>
             )}
