@@ -707,86 +707,290 @@ const videoAnalysisIntervalRef = useRef<any>(null);
 
 
 // AUTO-ANALYZE VIDEO FRAMES WITH CLAUDE VISION
-useEffect(() => {
-  if (activeCall && zoomActive) {
-    const findAndAnalyzeVideo = () => {
-      // OLD - WRONG: Gets first video (your camera)
-      // const zoomVideo = document.querySelector('video') as HTMLVideoElement;
+// useEffect(() => {
+//   if (activeCall && zoomActive) {
+//     const findAndAnalyzeVideo = () => {
+//       // OLD - WRONG: Gets first video (your camera)
+//       // const zoomVideo = document.querySelector('video') as HTMLVideoElement;
       
-      // NEW - CORRECT: Get the REMOTE participant video
-      const zoomVideo = document.querySelector('video[id*="video-canvas"]') as HTMLVideoElement
-        || document.querySelector('video[id*="remote"]') as HTMLVideoElement
-        || document.querySelector('video[aria-label*="participant"]') as HTMLVideoElement
-        || Array.from(document.querySelectorAll('video')).find(v => {
-            // Skip videos that are your own camera (usually smaller or in corner)
-            const width = v.videoWidth;
-            const height = v.videoHeight;
-            // Remote video is usually larger
-            return width > 320 && height > 240;
-          }) as HTMLVideoElement;
+//       // NEW - CORRECT: Get the REMOTE participant video
+//       const zoomVideo = document.querySelector('video[id*="video-canvas"]') as HTMLVideoElement
+//         || document.querySelector('video[id*="remote"]') as HTMLVideoElement
+//         || document.querySelector('video[aria-label*="participant"]') as HTMLVideoElement
+//         || Array.from(document.querySelectorAll('video')).find(v => {
+//             // Skip videos that are your own camera (usually smaller or in corner)
+//             const width = v.videoWidth;
+//             const height = v.videoHeight;
+//             // Remote video is usually larger
+//             return width > 320 && height > 240;
+//           }) as HTMLVideoElement;
       
-      console.log('🔍 Looking for REMOTE video element...', {
-        found: !!zoomVideo,
-        videoWidth: zoomVideo?.videoWidth,
-        videoHeight: zoomVideo?.videoHeight,
-        videoId: zoomVideo?.id,
-      });
+//       console.log('🔍 Looking for REMOTE video element...', {
+//         found: !!zoomVideo,
+//         videoWidth: zoomVideo?.videoWidth,
+//         videoHeight: zoomVideo?.videoHeight,
+//         videoId: zoomVideo?.id,
+//       });
       
-      if (zoomVideo && zoomVideo.videoWidth > 0) {
-        console.log('📹 Found REMOTE Zoom video, starting Claude Vision analysis...');
+//       if (zoomVideo && zoomVideo.videoWidth > 0) {
+//         console.log('📹 Found REMOTE Zoom video, starting Claude Vision analysis...');
         
-        videoCapture.startCapturing(zoomVideo, async (frameData) => {
-          console.log('📸 CAPTURED REMOTE FRAME! Length:', frameData.length);
-          setFrameAnalyzing(true);
+//         videoCapture.startCapturing(zoomVideo, async (frameData) => {
+//           console.log('📸 CAPTURED REMOTE FRAME! Length:', frameData.length);
+//           setFrameAnalyzing(true);
           
-          try {
-            const recentTranscript = liveTranscript
-              .slice(-3)
-              .map(t => `[${t.speaker}]: ${t.text}`)
-              .join('\n');
+//           try {
+//             const recentTranscript = liveTranscript
+//               .slice(-3)
+//               .map(t => `[${t.speaker}]: ${t.text}`)
+//               .join('\n');
 
-            console.log('🚀 Sending remote frame to backend...');
+//             console.log('🚀 Sending remote frame to backend...');
 
-            const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
-              callId: activeCall.callId,
-              frameData,
-              emergencyType: activeCall.type,
-              recentTranscript,
-            });
+//             const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
+//               callId: activeCall.callId,
+//               frameData,
+//               emergencyType: activeCall.type,
+//               recentTranscript,
+//             });
 
-            console.log('✅ Got response from backend:', response.data);
+//             console.log('✅ Got response from backend:', response.data);
 
-            setVideoAnalysis(response.data.analysis);
-            setCapturedFrames(prev => [...prev, {
-              timestamp: new Date().toISOString(),
-              analysis: response.data.analysis,
-            }]);
-            console.log('✅ Claude Vision analysis updated:', response.data.analysis.urgencyLevel);
-          } catch (error) {
-            console.error('❌ Frame analysis failed:', error);
-          } finally {
-            setFrameAnalyzing(false);
-          }
-        }, 10000);
+//             setVideoAnalysis(response.data.analysis);
+//             setCapturedFrames(prev => [...prev, {
+//               timestamp: new Date().toISOString(),
+//               analysis: response.data.analysis,
+//             }]);
+//             console.log('✅ Claude Vision analysis updated:', response.data.analysis.urgencyLevel);
+//           } catch (error) {
+//             console.error('❌ Frame analysis failed:', error);
+//           } finally {
+//             setFrameAnalyzing(false);
+//           }
+//         }, 10000);
 
-        clearInterval(videoAnalysisIntervalRef.current);
-      }
-    };
+//         clearInterval(videoAnalysisIntervalRef.current);
+//       }
+//     };
 
-    videoAnalysisIntervalRef.current = setInterval(findAndAnalyzeVideo, 2000);
+//     videoAnalysisIntervalRef.current = setInterval(findAndAnalyzeVideo, 2000);
     
-    setTimeout(() => {
-      clearInterval(videoAnalysisIntervalRef.current);
-    }, 30000);
-  }
+//     setTimeout(() => {
+//       clearInterval(videoAnalysisIntervalRef.current);
+//     }, 30000);
+//   }
 
-  return () => {
-    videoCapture.stopCapturing();
-    if (videoAnalysisIntervalRef.current) {
-      clearInterval(videoAnalysisIntervalRef.current);
-    }
-  };
-}, [activeCall, zoomActive, liveTranscript]);
+//   return () => {
+//     videoCapture.stopCapturing();
+//     if (videoAnalysisIntervalRef.current) {
+//       clearInterval(videoAnalysisIntervalRef.current);
+//     }
+//   };
+// }, [activeCall, zoomActive, liveTranscript]);
+
+
+// AUTO-ANALYZE VIDEO FRAMES WITH CLAUDE VISION
+// useEffect(() => {
+//     if (activeCall && zoomActive) {
+//       let foundCanvas = false;
+//       
+//       const findAndAnalyzeVideo = () => {
+//         if (foundCanvas) return;
+//         
+//         // Target Canvas 2: main-video (the mobile participant)
+//         const mainCanvas = document.getElementById('main-video') as HTMLCanvasElement;
+//         
+//         console.log('🔍 Looking for main-video canvas...', {
+//           found: !!mainCanvas,
+//           width: mainCanvas?.width,
+//           height: mainCanvas?.height,
+//         });
+//         
+//         if (mainCanvas && mainCanvas.width > 0) {
+//           console.log('📹 ✅ Found main-video canvas (mobile participant)!', {
+//             id: mainCanvas.id,
+//             width: mainCanvas.width,
+//             height: mainCanvas.height,
+//           });
+//           foundCanvas = true;
+//           
+//           // Start capturing from canvas every 10 seconds
+//           const captureInterval = setInterval(async () => {
+//             try {
+//               const frameData = mainCanvas.toDataURL('image/jpeg', 0.7);
+//               console.log('📸 Captured frame from mobile participant! Size:', frameData.length);
+//               
+//               setFrameAnalyzing(true);
+//               
+//               const recentTranscript = liveTranscript
+//                 .slice(-3)
+//                 .map(t => `[${t.speaker}]: ${t.text}`)
+//                 .join('\n');
+  
+//               console.log('🚀 Sending mobile participant frame to Claude Vision...');
+  
+//               const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
+//                 callId: activeCall.callId,
+//                 frameData,
+//                 emergencyType: activeCall.type,
+//                 recentTranscript,
+//               });
+  
+//               console.log('✅ Analysis:', response.data.analysis.urgencyLevel, '-', response.data.analysis.hazards.length, 'hazards');
+  
+//               setVideoAnalysis(response.data.analysis);
+//               setCapturedFrames(prev => [...prev, {
+//                 timestamp: new Date().toISOString(),
+//                 analysis: response.data.analysis,
+//               }]);
+//             } catch (error) {
+//               console.error('❌ Frame analysis failed:', error);
+//             } finally {
+//               setFrameAnalyzing(false);
+//             }
+//           }, 10000); // Every 10 seconds
+//           
+//           videoAnalysisIntervalRef.current = captureInterval;
+//           clearInterval(searchInterval);
+//           
+//           console.log('✅ Started capturing mobile participant video every 10 seconds');
+//         } else {
+//           console.log('⏳ main-video canvas not ready yet...');
+//         }
+//       };
+  
+//       const searchInterval = setInterval(findAndAnalyzeVideo, 2000);
+//       
+//       setTimeout(() => {
+//         clearInterval(searchInterval);
+//         if (!foundCanvas) {
+//           console.log('❌ Could not find main-video canvas after 60 seconds');
+//         }
+//       }, 60000);
+//       
+//       // Try once immediately
+//       findAndAnalyzeVideo();
+//     }
+  
+//     return () => {
+//       if (videoAnalysisIntervalRef.current) {
+//         clearInterval(videoAnalysisIntervalRef.current);
+//       }
+//     };
+//   }, [activeCall, zoomActive, liveTranscript]);
+
+
+// AUTO-ANALYZE VIDEO FRAMES WITH CLAUDE VISION
+useEffect(() => {
+    if (activeCall && zoomActive) {
+      let foundCanvas = false;
+      
+      const findAndAnalyzeVideo = () => {
+        if (foundCanvas) return;
+        
+        // Target Canvas 2: main-video (the mobile participant)
+        const mainCanvas = document.getElementById('main-video') as HTMLCanvasElement;
+        
+        console.log('🔍 Looking for main-video canvas...', {
+          found: !!mainCanvas,
+          width: mainCanvas?.width,
+          height: mainCanvas?.height,
+        });
+        
+        if (mainCanvas && mainCanvas.width > 0) {
+          console.log('📹 ✅ Found main-video canvas (mobile participant)!', {
+            id: mainCanvas.id,
+            width: mainCanvas.width,
+            height: mainCanvas.height,
+          });
+          foundCanvas = true;
+          
+          // Start capturing from canvas every 10 seconds
+          const captureInterval = setInterval(async () => {
+            try {
+              // CREATE SMALLER CANVAS for resizing
+              const tempCanvas = document.createElement('canvas');
+              const tempCtx = tempCanvas.getContext('2d')!;
+              
+              // Resize to max 800px width
+              const maxWidth = 700;
+              const scale = Math.min(maxWidth / mainCanvas.width, 1);
+              tempCanvas.width = mainCanvas.width * scale;
+              tempCanvas.height = mainCanvas.height * scale;
+              
+              // Draw resized
+              tempCtx.drawImage(mainCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+              
+              // Convert with lower quality
+              // const frameData = tempCanvas.toDataURL('image/jpeg', 0.6);
+              const frameData = tempCanvas.toDataURL('image/jpeg', 0.4); // Lower quality = faster upload
+
+
+              
+              console.log('📸 Resized frame!', {
+                original: `${mainCanvas.width}x${mainCanvas.height}`,
+                resized: `${tempCanvas.width}x${tempCanvas.height}`,
+                size: frameData.length
+              });
+              
+              setFrameAnalyzing(true);
+              
+              const recentTranscript = liveTranscript
+                .slice(-3)
+                .map(t => `[${t.speaker}]: ${t.text}`)
+                .join('\n');
+  
+              console.log('🚀 Sending resized frame to Claude...');
+  
+              const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
+                callId: activeCall.callId,
+                frameData,
+                emergencyType: activeCall.type,
+                recentTranscript,
+              });
+  
+              console.log('✅ Analysis:', response.data.analysis.urgencyLevel, '-', response.data.analysis.hazards.length, 'hazards');
+  
+              setVideoAnalysis(response.data.analysis);
+              setCapturedFrames(prev => [...prev, {
+                timestamp: new Date().toISOString(),
+                analysis: response.data.analysis,
+              }]);
+            } catch (error) {
+              console.error('❌ Frame analysis failed:', error);
+            } finally {
+              setFrameAnalyzing(false);
+            }
+          }, 5000); // Every 10 seconds
+          
+          videoAnalysisIntervalRef.current = captureInterval;
+          clearInterval(searchInterval);
+          
+          console.log('✅ Started capturing mobile participant video every 10 seconds');
+        } else {
+          console.log('⏳ main-video canvas not ready yet...');
+        }
+      };
+      const searchInterval = setInterval(findAndAnalyzeVideo, 2000);
+      
+      setTimeout(() => {
+        clearInterval(searchInterval);
+        if (!foundCanvas) {
+          console.log('❌ Could not find main-video canvas after 60 seconds');
+        }
+      }, 60000);
+      
+      // Try once immediately
+      findAndAnalyzeVideo();
+    }
+    return () => {
+      if (videoAnalysisIntervalRef.current) {
+        clearInterval(videoAnalysisIntervalRef.current);
+      }
+    };
+  }, [activeCall, zoomActive, liveTranscript]);
+
+
 
   // const generateLiveReport = async () => {
   //   if (!activeCall || liveTranscript.length === 0 || reportLoading) return;

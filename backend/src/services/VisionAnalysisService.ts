@@ -276,8 +276,7 @@ Analyze this video frame and provide a structured emergency assessment:
 Be extremely detailed and thorough. Lives depend on catching every detail. Focus on actionable intelligence.`;
 
       const response = await client.messages.create({
-        // model: 'claude-3-5-sonnet-20241022',
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         messages: [
           {
