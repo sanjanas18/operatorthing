@@ -223,7 +223,8 @@ export const generateReport = async (req: Request, res: Response) => {
       emergencyType || 'unknown',
       location || {},
       userInfo,  // ✅ PASS USER INFO
-      videoAnalyses  // video analyses
+      videoAnalyses,  // video analyses
+      callId
     );
 
     res.json({ report });
@@ -496,3 +497,5 @@ export const checkRecordingStatus = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export { activeCalls };

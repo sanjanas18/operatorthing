@@ -644,6 +644,16 @@ Injuries: ${v.analysis.injuries.length > 0 ? v.analysis.injuries.join(', ') : 'N
 Environment: ${v.analysis.environmentAssessment}
 `).join('\n')}
 
+
+
+═══════════════════════════════════════════════════════════
+QUESTIONS ABOUT THIS CALL?
+═══════════════════════════════════════════════════════════
+Call ID: ${report.callId}
+
+Text FrontLine AI at: https://poke.com/r/G-TGICJi2di
+Send your Call ID to get more information and ask questions.
+
 ═══════════════════════════════════════════════════════════
 END OF REPORT
 ═══════════════════════════════════════════════════════════
@@ -919,9 +929,18 @@ END OF REPORT
       <span className="info-label">Time Elapsed</span>
       <span className="info-value">{getTimeSince(activeCall.timestamp)}</span>
     </div>
+
+     <div className="info-item">
+      <span className="info-label">Call ID</span>
+      <span className="info-value" style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+        {activeCall.callId}
+      </span>
+    </div>
+
+
     <div className="info-item">
       <span className="info-label">Call ID</span>
-      <span className="info-value">#{activeCall.id.slice(-6)}</span>
+      <span className="info-value">{activeCall.callId}</span>
     </div>
     <div className="info-item">
       <span className="info-label">Priority</span>
@@ -1279,6 +1298,8 @@ END OF REPORT
                       <span>DOWNLOAD FULL REPORT</span>
                     </button>
                   )}
+
+                  
                   <button
                     className="end-call-btn"
                     onClick={endCall}

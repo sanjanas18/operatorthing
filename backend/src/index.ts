@@ -38,7 +38,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import emergencyRoutes from './routes/emergencyRoutes.js';
 
-
+import pokeRoutes from './routes/pokeRoutes.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -55,6 +55,8 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/emergency', emergencyRoutes);  // ← Make sure this line exists!
+app.use('/api/poke', pokeRoutes);
+
 
 // WebSocket
 io.on('connection', (socket) => {

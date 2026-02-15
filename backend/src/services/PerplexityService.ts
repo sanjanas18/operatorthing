@@ -155,7 +155,8 @@ class PerplexityService {
     transcript: TranscriptItem[],
     emergencyType: string,
     location: any,
-    userInfo?: any,  // ✅ ADD THIS PARAMETER
+    callId?: string,
+    userInfo?: any,  
     videoAnalyses?: Array<{ timestamp: string; analysis: any }>
   ): Promise<string> {
     try {
@@ -229,7 +230,19 @@ Include:
 
 4. PRIORITY LEVEL: Low/Medium/High/CRITICAL (justify based on audio + video + medical history)
 
-Keep report under 300 words. Be direct, factual, and actionable. Reference the caller by name. Integrate visual and audio intelligence seamlessly.`;
+Keep report under 300 words. Be direct, factual, and actionable. Reference the caller by name. Integrate visual and audio intelligence seamlessly.
+
+At the end of the report, include:
+
+---
+CALL REFERENCE:
+Call ID: ${callId || 'Unknown'}
+
+For questions about this call, text FrontLine AI at:
+https://poke.com/r/G-TGICJi2di
+
+Text your Call ID to get your full report and ask questions anytime.`;
+
 
       const response = await client.chat.completions.create({
         model: 'sonar',
