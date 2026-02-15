@@ -7,9 +7,11 @@ import {
   endCall,
 generateReport,
 
+    getCallRecording,
   analyzeVideoFrame,
   getCallReport,
   downloadCallData,
+    checkRecordingStatus,
 } from '../controllers/emergencyController.js';
 
 const router = express.Router();
@@ -20,8 +22,8 @@ router.get('/active', getActiveCalls);         // List all calls
 router.get('/:callId', getCallDetails);        // Get call info
 router.post('/:callId/end', endCall);          // End call
 router.post('/generate-report', generateReport); 
-
-
+router.get('/recording/:callId', getCallRecording);
+router.get('/recording-status/:callId', checkRecordingStatus);
 router.post('/analyze-frame', analyzeVideoFrame);
 router.get('/report/:callId', getCallReport);
 router.get('/download/:callId', downloadCallData);

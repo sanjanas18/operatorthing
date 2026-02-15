@@ -1,109 +1,3 @@
-// import type { Request, Response } from 'express';
-
-// import ZoomService from '../services/ZoomService.js';
-
-// const activeCalls = new Map();
-
-// // Create emergency call
-// export const createCall = async (req: Request, res: Response) => {
-//   try {
-//     const { emergencyType, location } = req.body;
-
-//     if (!emergencyType || !location) {
-//       return res.status(400).json({ error: 'Missing emergencyType or location' });
-//     }
-
-//     const meeting = ZoomService.createMeeting({ emergencyType, location });
-//     const callerSignature = ZoomService.getCallerSignature(meeting.meetingNumber);
-
-//     const callId = `call_${Date.now()}`;
-
-//     const callData = {
-//       callId,
-//       meetingNumber: meeting.meetingNumber,
-//       emergencyType,
-//       location,
-//       status: 'active',
-//       createdAt: new Date().toISOString(),
-//     };
-
-//     activeCalls.set(callId, callData);
-
-//     res.json({
-//       callId,
-//       meetingNumber: meeting.meetingNumber,
-//       signature: callerSignature,
-//       sdkKey: meeting.sdkKey,
-//       userName: meeting.callerId,
-//       location,
-//       emergencyType,
-//     });
-//   } catch (error: any) {
-//     console.error('Error creating call:', error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
-// // Join call as operator
-// export const joinCall = async (req: Request, res: Response) => {
-//   try {
-//     const { callId } = req.params;
-//     const call = activeCalls.get(callId);
-
-//     if (!call) {
-//       return res.status(404).json({ error: 'Call not found' });
-//     }
-
-//     const operatorSignature = ZoomService.getOperatorSignature(call.meetingNumber);
-
-//     res.json({
-//       callId,
-//       meetingNumber: call.meetingNumber,
-//       signature: operatorSignature,
-//       sdkKey: process.env.ZOOM_SDK_KEY,
-//       userName: `operator_${Date.now()}`,
-//       emergencyType: call.emergencyType,
-//       location: call.location,
-//     });
-//   } catch (error: any) {
-//     console.error('Error joining call:', error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
-// // Get all active calls
-// export const getActiveCalls = (req: Request, res: Response) => {
-//   const calls = Array.from(activeCalls.values());
-//   res.json({ calls });
-// };
-
-// // Get single call details
-// export const getCallDetails = (req: Request, res: Response) => {
-//   const { callId } = req.params;
-//   const call = activeCalls.get(callId);
-
-//   if (!call) {
-//     return res.status(404).json({ error: 'Call not found' });
-//   }
-
-//   res.json(call);
-// };
-
-// // End call
-// export const endCall = (req: Request, res: Response) => {
-//   const { callId } = req.params;
-//   const call = activeCalls.get(callId);
-
-//   if (!call) {
-//     return res.status(404).json({ error: 'Call not found' });
-//   }
-
-//   call.status = 'ended';
-//   call.endedAt = new Date().toISOString();
-
-//   res.json({ message: 'Call ended', call });
-// };
-
 
 import type { Request, Response } from 'express';
 import ZoomService from '../services/ZoomService.js';
@@ -111,6 +5,35 @@ import PerplexityService from '../services/PerplexityService.js';
 import VisionAnalysisService from '../services/VisionAnalysisService.js';
 
 const activeCalls = new Map();
+
+
+
+import ZoomRecordingService from '../services/ZoomRecordingService.js';
+
+export const getCallRecording = async (req: Request, res: Response) => {
+  try {
+    const { callId } = req.params;
+    
+    if (!callId || typeof callId !== 'string') {
+      return res.status(400).json({ error: 'Invalid callId' });
+    }
+    
+    const call = activeCalls.get(callId);
+
+    if (!call) {
+      return res.status(404).json({ error: 'Call not found' });
+    }
+
+    console.log('🎥 Fetching recording for call:', callId);
+    
+    const recording = await ZoomRecordingService.getRecording(call.meetingNumber);
+
+    res.json(recording);
+  } catch (error: any) {
+    console.error('Error fetching recording:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // export const createCall = async (req: Request, res: Response) => {
 //   try {
@@ -128,6 +51,7 @@ const activeCalls = new Map();
 //     const callData = {
 //       callId,
 //       meetingNumber: meeting.meetingNumber,
+//       password: meeting.password || '', // ← ADD THIS
 //       emergencyType,
 //       location,
 //       status: 'active',
@@ -139,6 +63,7 @@ const activeCalls = new Map();
 //     res.json({
 //       callId,
 //       meetingNumber: meeting.meetingNumber,
+//       password: meeting.password || '', // ← ADD THIS
 //       signature: callerSignature,
 //       sdkKey: meeting.sdkKey,
 //       userName: meeting.callerId,
@@ -151,11 +76,9 @@ const activeCalls = new Map();
 //   }
 // };
 
-
-
 export const createCall = async (req: Request, res: Response) => {
   try {
-    const { emergencyType, location } = req.body;
+    const { emergencyType, location, userInfo } = req.body; // ✅ ADD userInfo
 
     if (!emergencyType || !location) {
       return res.status(400).json({ error: 'Missing emergencyType or location' });
@@ -169,9 +92,10 @@ export const createCall = async (req: Request, res: Response) => {
     const callData = {
       callId,
       meetingNumber: meeting.meetingNumber,
-      password: meeting.password || '', // ← ADD THIS
+      password: meeting.password || '',
       emergencyType,
       location,
+      userInfo: userInfo || {}, // ✅ STORE USER INFO
       status: 'active',
       createdAt: new Date().toISOString(),
     };
@@ -181,7 +105,7 @@ export const createCall = async (req: Request, res: Response) => {
     res.json({
       callId,
       meetingNumber: meeting.meetingNumber,
-      password: meeting.password || '', // ← ADD THIS
+      password: meeting.password || '',
       signature: callerSignature,
       sdkKey: meeting.sdkKey,
       userName: meeting.callerId,
@@ -193,33 +117,6 @@ export const createCall = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-// export const joinCall = async (req: Request, res: Response) => {
-//   try {
-//     const { callId } = req.params;
-//     const call = activeCalls.get(callId);
-
-//     if (!call) {
-//       return res.status(404).json({ error: 'Call not found' });
-//     }
-
-//     const operatorSignature = ZoomService.getOperatorSignature(call.meetingNumber);
-
-//     res.json({
-//       callId,
-//       meetingNumber: call.meetingNumber,
-//       signature: operatorSignature,
-//       sdkKey: process.env.ZOOM_SDK_KEY,
-//       userName: `operator_${Date.now()}`,
-//       emergencyType: call.emergencyType,
-//       location: call.location,
-//     });
-//   } catch (error: any) {
-//     console.error('Error joining call:', error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
 
 export const joinCall = async (req: Request, res: Response) => {
   try {
@@ -278,9 +175,32 @@ export const endCall = (req: Request, res: Response) => {
   res.json({ message: 'Call ended', call });
 };
 
+// export const generateReport = async (req: Request, res: Response) => {
+//   try {
+//     const { transcript, emergencyType, location } = req.body;
+
+//     if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
+//       return res.status(400).json({ error: 'Transcript is required' });
+//     }
+
+//     console.log('📝 Generating report for', transcript.length, 'transcript items');
+
+//     const report = await PerplexityService.generateReport(
+//       transcript,
+//       emergencyType || 'unknown',
+//       location || {}
+//     );
+
+//     res.json({ report });
+//   } catch (error: any) {
+//     console.error('Error generating report:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 export const generateReport = async (req: Request, res: Response) => {
   try {
-    const { transcript, emergencyType, location } = req.body;
+    const { transcript, emergencyType, location, callId, videoAnalyses } = req.body;
 
     if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
       return res.status(400).json({ error: 'Transcript is required' });
@@ -288,10 +208,22 @@ export const generateReport = async (req: Request, res: Response) => {
 
     console.log('📝 Generating report for', transcript.length, 'transcript items');
 
+    // Get user info from active call
+    let userInfo = null;
+    if (callId) {
+      const call = activeCalls.get(callId);
+      if (call && call.userInfo) {
+        userInfo = call.userInfo;
+        console.log('👤 Including user info:', userInfo.name);
+      }
+    }
+
     const report = await PerplexityService.generateReport(
       transcript,
       emergencyType || 'unknown',
-      location || {}
+      location || {},
+      userInfo,  // ✅ PASS USER INFO
+      videoAnalyses  // video analyses
     );
 
     res.json({ report });
@@ -387,28 +319,95 @@ export const getCallReport = async (req: Request, res: Response) => {
   }
 };
 
+// export const downloadCallData = async (req: Request, res: Response) => {
+//   try {
+//     const { callId } = req.params;
+//     const call = activeCalls.get(callId);
+
+
+//     if (!call) {
+//       return res.status(404).json({ error: 'Call not found' });
+//     }
+
+//      if (!callId || typeof callId !== 'string') {
+//       return res.status(400).json({ error: 'Invalid callId' });
+//     }
+
+//     const videoFrames = callVideoFrames.get(callId) || [];
+//     const storedImages = VisionAnalysisService.getStoredFrames(callId);
+
+//     // Get transcript from localStorage (if saved)
+//     // This will be the final transcript saved when call ended
+
+//     // Compile complete report
+//     const completeReport = {
+//       callInfo: {
+//         callId: call.callId,
+//         emergencyType: call.emergencyType,
+//         location: call.location,
+//         status: call.status,
+//         startTime: call.createdAt,
+//         endTime: call.endedAt || new Date().toISOString(),
+//       },
+//       videoAnalyses: videoFrames.map(f => ({
+//         timestamp: f.timestamp,
+//         urgencyLevel: f.analysis.urgencyLevel,
+//         hazards: f.analysis.hazards,
+//         injuries: f.analysis.injuries,
+//         environment: f.analysis.environmentAssessment,
+//         recommendations: f.analysis.recommendations,
+//         rawAnalysis: f.analysis.rawAnalysis,
+//       })),
+//       savedImagePaths: storedImages,
+//       totalFramesAnalyzed: videoFrames.length,
+//       reportGeneratedAt: new Date().toISOString(),
+//     };
+
+//     res.json(completeReport);
+//   } catch (error: any) {
+//     console.error('Error downloading call data:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 export const downloadCallData = async (req: Request, res: Response) => {
   try {
     const { callId } = req.params;
+    
+    if (!callId || typeof callId !== 'string') {
+      return res.status(400).json({ error: 'Invalid callId' });
+    }
+    
     const call = activeCalls.get(callId);
-
 
     if (!call) {
       return res.status(404).json({ error: 'Call not found' });
     }
 
-     if (!callId || typeof callId !== 'string') {
-      return res.status(400).json({ error: 'Invalid callId' });
-    }
-
     const videoFrames = callVideoFrames.get(callId) || [];
     const storedImages = VisionAnalysisService.getStoredFrames(callId);
 
-    // Get transcript from localStorage (if saved)
-    // This will be the final transcript saved when call ended
+    // Try to get recording (might not be ready yet)
+    let recordingData = {
+      available: false,
+      status: 'not_ready',
+      message: 'Recording will be available 5-10 minutes after call ends',
+    };
+    
+    try {
+      recordingData = await ZoomRecordingService.getRecording(call.meetingNumber);
+    } catch (error) {
+      console.log('Recording not available yet');
+    }
 
-    // Compile complete report
     const completeReport = {
+      reportMetadata: {
+        reportId: `EMRG-${callId.slice(-8).toUpperCase()}`,
+        generatedAt: new Date().toISOString(),
+        callDuration: call.endedAt 
+          ? Math.floor((new Date(call.endedAt).getTime() - new Date(call.createdAt).getTime()) / 1000)
+          : null,
+      },
       callInfo: {
         callId: call.callId,
         emergencyType: call.emergencyType,
@@ -424,8 +423,8 @@ export const downloadCallData = async (req: Request, res: Response) => {
         injuries: f.analysis.injuries,
         environment: f.analysis.environmentAssessment,
         recommendations: f.analysis.recommendations,
-        rawAnalysis: f.analysis.rawAnalysis,
       })),
+      recording: recordingData, // Include recording info
       savedImagePaths: storedImages,
       totalFramesAnalyzed: videoFrames.length,
       reportGeneratedAt: new Date().toISOString(),
@@ -434,6 +433,66 @@ export const downloadCallData = async (req: Request, res: Response) => {
     res.json(completeReport);
   } catch (error: any) {
     console.error('Error downloading call data:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const checkRecordingStatus = async (req: Request, res: Response) => {
+  try {
+    const { callId } = req.params;
+    
+    if (!callId || typeof callId !== 'string') {
+      return res.status(400).json({ error: 'Invalid callId' });
+    }
+    
+    console.log('🔍 Looking for call:', callId);
+    console.log('📋 Active calls:', Array.from(activeCalls.keys()));
+    
+    const call = activeCalls.get(callId);
+
+    if (!call) {
+      return res.status(404).json({ 
+        error: 'Call not found',
+        callId: callId,
+        availableCalls: Array.from(activeCalls.keys()),
+      });
+    }
+
+    console.log('✅ Found call:', call.callId, 'Meeting:', call.meetingNumber);
+
+    try {
+      const recording = await ZoomRecordingService.getRecording(call.meetingNumber);
+      
+      res.json({
+        callId: call.callId,
+        meetingNumber: call.meetingNumber,
+        recording,
+        debugInfo: {
+          callEnded: call.endedAt,
+          minutesSinceEnd: call.endedAt 
+            ? Math.floor((Date.now() - new Date(call.endedAt).getTime()) / 1000 / 60)
+            : null,
+        },
+      });
+    } catch (error: any) {
+      console.error('Recording check error:', error.response?.data || error.message);
+      res.json({
+        callId: call.callId,
+        meetingNumber: call.meetingNumber,
+        recording: {
+          available: false,
+          message: 'Recording not ready yet',
+        },
+        debugInfo: {
+          callEnded: call.endedAt,
+          minutesSinceEnd: call.endedAt 
+            ? Math.floor((Date.now() - new Date(call.endedAt).getTime()) / 1000 / 60)
+            : null,
+        },
+      });
+    }
+  } catch (error: any) {
+    console.error('Error checking recording:', error);
     res.status(500).json({ error: error.message });
   }
 };

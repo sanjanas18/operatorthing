@@ -15,8 +15,8 @@ import {
 } from 'react-native';
 import axios from 'axios';
 
-//const API_URL = 'http://localhost:3000';
-const API_URL = 'https://references-absolutely-matching-aud.trycloudflare.com'; // 🔁 update tunnel URL as needed
+const API_URL = 'http://localhost:3000';
+// const API_URL = 'https://references-absolutely-matching-aud.trycloudflare.com'; // 🔁 update tunnel URL as needed
 
 interface UserData {
   name: string;
@@ -60,49 +60,95 @@ export default function EmergencyCallScreen() {
     setUserData(data);
   };
 
-  const startEmergencyCall = async () => {
-    setCalling(true);
-    try {
-      const response = await axios.post(`${API_URL}/api/emergency/create`, {
-        emergencyType: 'other',
-        location: {
-          latitude: 37.7749,
-          longitude: -122.4194,
-          address: 'San Francisco, CA',
-        },
-        userInfo: {
-          name: userData?.name || 'Unknown',
-          age: userData?.age || 'Unknown',
-          phone: userData?.phone || 'Not provided',
-          medicalConditions: userData?.medicalConditions || 'None reported',
-        },
-      });
+//   const startEmergencyCall = async () => {
+//     setCalling(true);
+//     try {
+//       const response = await axios.post(`${API_URL}/api/emergency/create`, {
+//         emergencyType: 'other',
+//         location: {
+//           latitude: 37.7749,
+//           longitude: -122.4194,
+//           address: 'San Francisco, CA',
+//         },
+//         userInfo: {
+//           name: userData?.name || 'Unknown',
+//           age: userData?.age || 'Unknown',
+//           phone: userData?.phone || 'Not provided',
+//           medicalConditions: userData?.medicalConditions || 'None reported',
+//         },
+//       });
 
-      const { meetingNumber, password } = response.data;
+//       const { meetingNumber, password } = response.data;
 
-      console.log('✅ Meeting created:', meetingNumber);
+//       console.log('✅ Meeting created:', meetingNumber);
 
-      const zoomUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
+//     //   const zoomUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
+//       const zoomUrl = `https://zoom.us/wc/${meetingNumber}/join?pwd=${password}`;
 
-      const canOpen = await Linking.canOpenURL(zoomUrl);
+//       const canOpen = await Linking.canOpenURL(zoomUrl);
 
-      if (canOpen) {
-        await Linking.openURL(zoomUrl);
-        Alert.alert(
-          'Call Started',
-          'Zoom will open. Join the meeting to connect with emergency services.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert('Error', 'Cannot open Zoom');
-      }
-    } catch (error: any) {
-      console.error('❌ Error:', error);
-      Alert.alert('Error', error.message || 'Failed to create call');
-    } finally {
-      setCalling(false);
+//       if (canOpen) {
+//         await Linking.openURL(zoomUrl);
+//         Alert.alert(
+//           'Call Started',
+//           'Zoom will open. Join the meeting to connect with emergency services.',
+//           [{ text: 'OK' }]
+//         );
+//       } else {
+//         Alert.alert('Error', 'Cannot open Zoom');
+//       }
+//     } catch (error: any) {
+//       console.error('❌ Error:', error);
+//       Alert.alert('Error', error.message || 'Failed to create call');
+//     } finally {
+//       setCalling(false);
+//     }
+//   };
+
+const startEmergencyCall = async () => {
+  setCalling(true);
+  try {
+    const response = await axios.post(`${API_URL}/api/emergency/create`, {
+      emergencyType: 'other',
+      location: {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        address: 'San Francisco, CA',
+      },
+      // ✅ ADD THIS - send user info
+      userInfo: {
+        name: userData?.name || 'Unknown',
+        age: userData?.age || 'Unknown',
+        phone: userData?.phone || 'Not provided',
+        medicalConditions: userData?.medicalConditions || 'None reported',
+      },
+    });
+
+    const { meetingNumber, password } = response.data;
+
+    console.log('✅ Meeting created:', meetingNumber);
+
+    const zoomUrl = `https://zoom.us/wc/${meetingNumber}/join?pwd=${password}`;
+
+    const canOpen = await Linking.canOpenURL(zoomUrl);
+
+    if (canOpen) {
+      await Linking.openURL(zoomUrl);
+      Alert.alert(
+        'Call Started',
+        'Zoom will open. Join the meeting to connect with emergency services.',
+        [{ text: 'OK' }]
+      );
+    } else {
+      Alert.alert('Error', 'Cannot open Zoom');
     }
-  };
+  } catch (error: any) {
+    console.error('❌ Error:', error);
+    Alert.alert('Error', error.message || 'Failed to create call');
+  } finally {
+    setCalling(false);
+  }
+};
 
   // INTRO SCREEN - Show if no user data
   if (!userData) {
