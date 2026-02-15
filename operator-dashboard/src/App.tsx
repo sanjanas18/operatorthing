@@ -375,66 +375,136 @@ function App() {
   };
 
 
+  // const endCall = async () => {
+  //   if (activeCall) {
+  //     console.log('END CALL CLICKED:', activeCall.callId);
+
+  //     stopSpeechRecognition();
+
+  //     if (reportIntervalRef.current) {
+  //       clearInterval(reportIntervalRef.current);
+  //     }
+
+  //     // Save complete report to localStorage
+  //     const completeReport = {
+  //       callId: activeCall.callId,
+  //       emergencyType: activeCall.type,
+  //       location: activeCall.location,
+  //       transcript: liveTranscript,
+  //       videoAnalyses: capturedFrames,
+  //       aiReport: aiReport,
+  //       startTime: activeCall.timestamp,
+  //       endTime: new Date().toISOString(),
+  //       savedAt: new Date().toISOString(),
+  //     };
+
+  //     const existingReports = JSON.parse(localStorage.getItem('emergency_reports') || '[]');
+
+  //     // check if call already exists
+  //     const alreadyExists = existingReports.some((r: any) => r.callId === activeCall.callId);
+
+  //     if (!alreadyExists) {
+  //       existingReports.push(completeReport);
+  //       localStorage.setItem('emergency_reports', JSON.stringify(existingReports));
+  //       setPastCalls(existingReports);
+  //       console.log('Complete report saved to localStorage');
+  //     } else {
+  //       console.log(' Report already saved, skipping duplicate');
+  //     }
+
+  //     // Remove the call from the list immediately
+  //     setCalls(prevCalls => prevCalls.filter(c => c.callId !== activeCall.callId));
+
+  //     // Clear all active call state
+  //     setActiveCall(null);
+  //     setZoomActive(false);
+  //     setLiveTranscript([]);
+  //     setAiReport('');
+  //     setVideoAnalysis(null);
+  //     setCapturedFrames([]);
+
+  //     // Hide Zoom container
+  //     const zoomContainer = document.getElementById('zmmtg-root');
+  //     if (zoomContainer) {
+  //       zoomContainer.className = 'zoom-hidden';
+  //     }
+
+  //     // Leave Zoom meeting
+  //     if (window.ZoomMtg) {
+  //       window.ZoomMtg.leaveMeeting({});
+  //     }
+  //   }
+  // };
+
   const endCall = async () => {
-    if (activeCall) {
-      console.log('END CALL CLICKED:', activeCall.callId);
+  if (activeCall) {
+    console.log('END CALL CLICKED:', activeCall.callId);
 
-      stopSpeechRecognition();
+    stopSpeechRecognition();
 
-      if (reportIntervalRef.current) {
-        clearInterval(reportIntervalRef.current);
-      }
+    if (reportIntervalRef.current) {
+      clearInterval(reportIntervalRef.current);
+    }
 
-      // Save complete report to localStorage
-      const completeReport = {
+    // ✅ Send complete call data to backend
+    try {
+      await axios.post('https://operatorthing.onrender.com/api/emergency/save-completed', {
         callId: activeCall.callId,
-        emergencyType: activeCall.type,
-        location: activeCall.location,
         transcript: liveTranscript,
         videoAnalyses: capturedFrames,
         aiReport: aiReport,
         startTime: activeCall.timestamp,
         endTime: new Date().toISOString(),
-        savedAt: new Date().toISOString(),
-      };
-
-      const existingReports = JSON.parse(localStorage.getItem('emergency_reports') || '[]');
-
-      // check if call already exists
-      const alreadyExists = existingReports.some((r: any) => r.callId === activeCall.callId);
-
-      if (!alreadyExists) {
-        existingReports.push(completeReport);
-        localStorage.setItem('emergency_reports', JSON.stringify(existingReports));
-        setPastCalls(existingReports);
-        console.log('Complete report saved to localStorage');
-      } else {
-        console.log(' Report already saved, skipping duplicate');
-      }
-
-      // Remove the call from the list immediately
-      setCalls(prevCalls => prevCalls.filter(c => c.callId !== activeCall.callId));
-
-      // Clear all active call state
-      setActiveCall(null);
-      setZoomActive(false);
-      setLiveTranscript([]);
-      setAiReport('');
-      setVideoAnalysis(null);
-      setCapturedFrames([]);
-
-      // Hide Zoom container
-      const zoomContainer = document.getElementById('zmmtg-root');
-      if (zoomContainer) {
-        zoomContainer.className = 'zoom-hidden';
-      }
-
-      // Leave Zoom meeting
-      if (window.ZoomMtg) {
-        window.ZoomMtg.leaveMeeting({});
-      }
+        userInfo: activeCall.userInfo,
+        emergencyType: activeCall.type,
+        location: activeCall.location,
+      });
+      console.log('Call data sent to backend');
+    } catch (error) {
+      console.error('Failed to save call to backend:', error);
     }
-  };
+
+    // Save to localStorage (keep this for frontend display)
+    const completeReport = {
+      callId: activeCall.callId,
+      emergencyType: activeCall.type,
+      location: activeCall.location,
+      transcript: liveTranscript,
+      videoAnalyses: capturedFrames,
+      aiReport: aiReport,
+      startTime: activeCall.timestamp,
+      endTime: new Date().toISOString(),
+      savedAt: new Date().toISOString(),
+    };
+
+    const existingReports = JSON.parse(localStorage.getItem('emergency_reports') || '[]');
+    const alreadyExists = existingReports.some((r: any) => r.callId === activeCall.callId);
+
+    if (!alreadyExists) {
+      existingReports.push(completeReport);
+      localStorage.setItem('emergency_reports', JSON.stringify(existingReports));
+      setPastCalls(existingReports);
+    }
+
+    // Rest of your cleanup code stays the same...
+    setCalls(prevCalls => prevCalls.filter(c => c.callId !== activeCall.callId));
+    setActiveCall(null);
+    setZoomActive(false);
+    setLiveTranscript([]);
+    setAiReport('');
+    setVideoAnalysis(null);
+    setCapturedFrames([]);
+
+    const zoomContainer = document.getElementById('zmmtg-root');
+    if (zoomContainer) {
+      zoomContainer.className = 'zoom-hidden';
+    }
+
+    if (window.ZoomMtg) {
+      window.ZoomMtg.leaveMeeting({});
+    }
+  }
+};
 
 
   const viewPastCall = async (report: any) => {

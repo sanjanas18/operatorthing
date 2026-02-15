@@ -13,6 +13,8 @@ generateReport,
   downloadCallData,
     checkRecordingStatus,
 } from '../controllers/emergencyController.js';
+import { saveCompletedCall } from '../controllers/emergencyController.js';
+
 
 const router = express.Router();
 
@@ -27,5 +29,6 @@ router.get('/recording-status/:callId', checkRecordingStatus);
 router.post('/analyze-frame', analyzeVideoFrame);
 router.get('/report/:callId', getCallReport);
 router.get('/download/:callId', downloadCallData);
+router.post('/save-completed', saveCompletedCall);
 
 export default router;
