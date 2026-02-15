@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
+// const API_URL = 'http://localhost:3000';
+const API_URL = 'https://operatorthing.onrender.com';
 // const API_URL = 'https://references-absolutely-matching-aud.trycloudflare.com'; // 🔁 update tunnel URL as needed
 
 interface UserData {

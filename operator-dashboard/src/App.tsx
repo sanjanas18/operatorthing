@@ -77,7 +77,8 @@ function App() {
 
   // Set up socket connection and listener for call ended
   useEffect(() => {
-    const newSocket = io('http://localhost:3000');
+    // const newSocket = io('http://localhost:3000');
+    const newSocket = io('https://operatorthing.onrender.com'); 
     setSocket(newSocket);
 
     newSocket.on('operator:call-ended', (data: { callId: string; reason: string }) => {
@@ -145,7 +146,8 @@ function App() {
 useEffect(() => {
   const fetchCalls = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/emergency/active');
+      // const response = await axios.get('http://localhost:3000/api/emergency/active');
+      const response = await axios.get('https://operatorthing.onrender.com/api/emergency/active');
       const backendCalls = response.data.calls.map((call: any) => ({
         id: call.callId,
         callId: call.callId,
@@ -201,7 +203,9 @@ useEffect(() => {
 
       const checkInterval = setInterval(async () => {
         try {
-          const response = await axios.get(`http://localhost:3000/api/emergency/recording-status/${selectedReport.callId}`);
+          // const response = await axios.get(`http://localhost:3000/api/emergency/recording-status/${selectedReport.callId}`);
+          const response = await axios.get(`https://operatorthing.onrender.com/api/emergency/recording-status/${selectedReport.callId}`);
+
           console.log('📊 Recording check:', response.data.recording);
 
           if (response.data.recording.available) {
@@ -275,7 +279,15 @@ useEffect(() => {
 
               console.log('🚀 Sending resized frame to Claude...');
 
-              const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
+              // const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
+              //   callId: activeCall.callId,
+              //   frameData,
+              //   emergencyType: activeCall.type,
+              //   recentTranscript,
+              // });
+
+
+              const response = await axios.post('https://operatorthing.onrender.com/api/emergency/analyze-frame', {
                 callId: activeCall.callId,
                 frameData,
                 emergencyType: activeCall.type,
@@ -329,7 +341,14 @@ useEffect(() => {
     console.log('🤖 Generating real-time AI report...');
 
     try {
-      const response = await axios.post('http://localhost:3000/api/emergency/generate-report', {
+      // const response = await axios.post('http://localhost:3000/api/emergency/generate-report', {
+      //   transcript: liveTranscript,
+      //   emergencyType: activeCall.type,
+      //   location: activeCall.location,
+      //   videoAnalyses: capturedFrames,
+      // });
+
+      const response = await axios.post('https://operatorthing.onrender.com/api/emergency/generate-report', {
         transcript: liveTranscript,
         emergencyType: activeCall.type,
         location: activeCall.location,
@@ -350,7 +369,9 @@ useEffect(() => {
     if (!activeCall) return;
 
     try {
-      const response = await axios.get(`http://localhost:3000/api/emergency/download/${activeCall.callId}`);
+      // const response = await axios.get(`http://localhost:3000/api/emergency/download/${activeCall.callId}`);
+      const response = await axios.get(`https://operatorthing.onrender.com/api/emergency/download/${activeCall.callId}`);
+
 
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
@@ -575,7 +596,8 @@ useEffect(() => {
 
     try {
       // Try to fetch recording data from backend
-      const response = await axios.get(`http://localhost:3000/api/emergency/download/${report.callId}`);
+      // const response = await axios.get(`http://localhost:3000/api/emergency/download/${report.callId}`);
+      const response = await axios.get(`https://operatorthing.onrender.com/api/emergency/download/${report.callId}`);
 
       // Merge localStorage data with recording data
       setSelectedReport({
@@ -1599,7 +1621,9 @@ END OF REPORT
                         onClick={async () => {
                           setLoadingReport(true);
                           try {
-                            const response = await axios.get(`http://localhost:3000/api/emergency/recording-status/${selectedReport.callId}`);
+                            // const response = await axios.get(`http://localhost:3000/api/emergency/recording-status/${selectedReport.callId}`);
+                            const response = await axios.get(`https://operatorthing.onrender.com/api/emergency/recording-status/${selectedReport.callId}`);
+
                             console.log('🔍 Recording status:', response.data);
 
                             setSelectedReport({
