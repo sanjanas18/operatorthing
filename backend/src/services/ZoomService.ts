@@ -27,6 +27,15 @@ private async getAccessToken(): Promise<string> {
 //   console.log('  Client Secret length:', clientSecret.length, 'chars');
   console.log('  Client Secret preview:', clientSecret ? `${clientSecret.substring(0, 5)}...${clientSecret.substring(clientSecret.length - 5)}` : 'EMPTY!');
 
+
+  console.log('🔍 ALL Environment Variables:', Object.keys(process.env));
+  console.log('🔍 ZOOM vars specifically:', {
+    accountId: process.env.ZOOM_ACCOUNT_ID,
+    clientId: process.env.ZOOM_CLIENT_ID,
+    clientSecretExists: !!process.env.ZOOM_CLIENT_SECRET,
+    clientSecretLength: process.env.ZOOM_CLIENT_SECRET?.length
+  });
+
   if (!accountId || !clientId || !clientSecret) {
     throw new Error('❌ Missing credentials');
   }
