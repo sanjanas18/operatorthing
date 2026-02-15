@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { io, Socket } from 'socket.io-client';
 import { useZoom } from './hooks/useZoom';
 import './App.css';
 import videoCapture from './utils/videoCapture';
@@ -31,6 +32,7 @@ function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [zoomActive, setZoomActive] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState<TranscriptItem[]>([]);
+  const [socket, setSocket] = useState<Socket | null>(null);
   
   // Real-time AI report state
   const [aiReport, setAiReport] = useState<string>('');
@@ -49,6 +51,44 @@ function App() {
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Set up socket connection and listener for call ended
+  useEffect(() => {
+    const newSocket = io('http://localhost:3000');
+    setSocket(newSocket);
+
+    newSocket.on('operator:call-ended', (data: { callId: string; reason: string }) => {
+      console.log('📞 Received call-ended event:', data);
+      
+      // Remove call from the list
+      setCalls(prevCalls => {
+        const filtered = prevCalls.filter(c => c.callId !== data.callId);
+        console.log('🗑️ Calls after removal:', filtered.length);
+        return filtered;
+      });
+      
+      // Clear active call if it matches
+      setActiveCall(prevActive => {
+        if (prevActive?.callId === data.callId) {
+          console.log('🔴 Clearing active call');
+          setZoomActive(false);
+          
+          // Hide Zoom container
+          const zoomContainer = document.getElementById('zmmtg-root');
+          if (zoomContainer) {
+            zoomContainer.className = 'zoom-hidden';
+          }
+          
+          return null;
+        }
+        return prevActive;
+      });
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
   }, []);
 
   // Fetch real calls from backend
@@ -280,6 +320,8 @@ function App() {
 
   const endCall = async () => {
     if (activeCall) {
+      console.log('🔴 END CALL CLICKED:', activeCall.callId);
+      
       stopSpeechRecognition();
       
       if (reportIntervalRef.current) {
@@ -304,19 +346,27 @@ function App() {
         console.log('💾 Transcript and report saved');
       }
       
-      setCalls(calls.map(c => 
-        c.id === activeCall.id ? { ...c, status: 'ended' as const } : c
-      ));
+      // Remove the call from the list immediately
+      setCalls(prevCalls => prevCalls.filter(c => c.callId !== activeCall.callId));
+      
+      // Clear all active call state
       setActiveCall(null);
       setZoomActive(false);
+      setLiveTranscript([]);
+      setAiReport('');
+      setVideoAnalysis(null);
+      setCapturedFrames([]);
       
+      // Hide Zoom container
       const zoomContainer = document.getElementById('zmmtg-root');
       if (zoomContainer) {
-        zoomContainer.style.display = 'none';
+        zoomContainer.className = 'zoom-hidden';
       }
 
-      setActiveCall(null);
-      setZoomActive(false);
+      // Leave Zoom meeting
+      if (window.ZoomMtg) {
+        window.ZoomMtg.leaveMeeting({});
+      }
     }
   };
 
@@ -359,7 +409,7 @@ function App() {
       ></div>
 
       {/* Top Navigation Bar */}
-      <nav className={`navbar ${zoomActive ? 'zoom-active' : ''}`}>
+      <nav className="navbar">
         <div className="nav-content">
           <div className="nav-left">
             <div className="logo">
@@ -388,7 +438,7 @@ function App() {
       </nav>
 
       {/* Main Dashboard */}
-      <div className={`dashboard ${zoomActive ? 'zoom-active' : ''}`}>
+      <div className="dashboard">
         {/* Stats Bar */}
         <div className="stats-bar">
           <div className="stat-card">
@@ -425,7 +475,7 @@ function App() {
           {/* Calls Queue */}
           <div className="queue-panel">
             <div className="panel-header">
-              <h2>Emergency Queue</h2>
+              <h2>Incoming Calls</h2>
               {incomingCalls.length > 0 && (
                 <span className="priority-badge">
                   {incomingCalls.length} Waiting
@@ -517,9 +567,6 @@ function App() {
                 <div className="empty-queue">
                   <div className="empty-title">All Clear</div>
                   <div className="empty-subtitle">No pending emergency calls</div>
-                  <div style={{ marginTop: '20px', fontSize: '13px', color: '#64748b' }}>
-                    Create a test call in Postman to see it appear here
-                  </div>
                 </div>
               )}
             </div>
@@ -528,7 +575,7 @@ function App() {
           {/* Active Call Panel */}
           <div className="active-panel">
             <div className="panel-header">
-              <h2>Active Response</h2>
+              <h2>Report</h2>
               {activeCall && (
                 <span className="live-indicator">
                   <span className="pulse-dot"></span>
