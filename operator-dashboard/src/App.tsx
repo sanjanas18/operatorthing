@@ -18,7 +18,7 @@ interface EmergencyCall {
   status: 'incoming' | 'active' | 'ended';
   timestamp: string;
   callerName?: string;
-  userInfo?: { 
+  userInfo?: {
     name?: string;
     age?: string;
     phone?: string;
@@ -78,7 +78,7 @@ function App() {
   // Set up socket connection and listener for call ended
   useEffect(() => {
     // const newSocket = io('http://localhost:3000');
-    const newSocket = io('https://operatorthing.onrender.com'); 
+    const newSocket = io('https://operatorthing.onrender.com');
     setSocket(newSocket);
 
     newSocket.on('operator:call-ended', (data: { callId: string; reason: string }) => {
@@ -94,7 +94,7 @@ function App() {
       // Clear active call if it matches
       setActiveCall(prevActive => {
         if (prevActive?.callId === data.callId) {
-          console.log('🔴 Clearing active call');
+          console.log('Clearing active call');
           setZoomActive(false);
 
           // Hide Zoom container
@@ -114,64 +114,35 @@ function App() {
     };
   }, []);
 
-  // Fetch real calls from backend
-  // useEffect(() => {
-  //   const fetchCalls = async () => {
-  //     try {
-  //       const response = await axios.get('http://localhost:3000/api/emergency/active');
-  //       const backendCalls = response.data.calls.map((call: any) => ({
-  //         id: call.callId,
-  //         callId: call.callId,
-  //         type: call.emergencyType as 'medical' | 'fire' | 'police' | 'other',
-  //         location: {
-  //           lat: call.location.latitude,
-  //           lng: call.location.longitude,
-  //           address: call.location.address || 'Unknown location',
-  //         },
-  //         status: call.status === 'active' ? 'incoming' as const : 'ended' as const,
-  //         timestamp: call.createdAt,
-  //       }));
-  //       setCalls(backendCalls);
-  //     } catch (error) {
-  //       console.error('❌ Failed to fetch calls:', error);
-  //     }
-  //   };
+  useEffect(() => {
+    const fetchCalls = async () => {
+      try {
+        // const response = await axios.get('http://localhost:3000/api/emergency/active');
+        const response = await axios.get('https://operatorthing.onrender.com/api/emergency/active');
+        const backendCalls = response.data.calls.map((call: any) => ({
+          id: call.callId,
+          callId: call.callId,
+          type: call.emergencyType as 'medical' | 'fire' | 'police' | 'other',
+          location: {
+            lat: call.location.latitude,
+            lng: call.location.longitude,
+            address: call.location.address || 'Unknown location',
+          },
+          status: call.status === 'active' ? 'incoming' as const : 'ended' as const,
+          timestamp: call.createdAt,
+          callerName: call.userInfo?.name || 'Unknown Caller', // ✅ ADD THIS
+          userInfo: call.userInfo || {}, // ✅ ADD THIS
+        }));
+        setCalls(backendCalls);
+      } catch (error) {
+        console.error('Failed to fetch calls:', error);
+      }
+    };
 
-  //   fetchCalls();
-  //   const interval = setInterval(fetchCalls, 5000);
-  //   return () => clearInterval(interval);
-  // }, []);
-
-  // Fetch real calls from backend
-useEffect(() => {
-  const fetchCalls = async () => {
-    try {
-      // const response = await axios.get('http://localhost:3000/api/emergency/active');
-      const response = await axios.get('https://operatorthing.onrender.com/api/emergency/active');
-      const backendCalls = response.data.calls.map((call: any) => ({
-        id: call.callId,
-        callId: call.callId,
-        type: call.emergencyType as 'medical' | 'fire' | 'police' | 'other',
-        location: {
-          lat: call.location.latitude,
-          lng: call.location.longitude,
-          address: call.location.address || 'Unknown location',
-        },
-        status: call.status === 'active' ? 'incoming' as const : 'ended' as const,
-        timestamp: call.createdAt,
-        callerName: call.userInfo?.name || 'Unknown Caller', // ✅ ADD THIS
-        userInfo: call.userInfo || {}, // ✅ ADD THIS
-      }));
-      setCalls(backendCalls);
-    } catch (error) {
-      console.error('❌ Failed to fetch calls:', error);
-    }
-  };
-
-  fetchCalls();
-  const interval = setInterval(fetchCalls, 5000);
-  return () => clearInterval(interval);
-}, []);
+    fetchCalls();
+    const interval = setInterval(fetchCalls, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-generate report every 10 seconds
   useEffect(() => {
@@ -214,19 +185,19 @@ useEffect(() => {
               ...selectedReport,
               recording: response.data.recording,
             });
-            clearInterval(checkInterval); // Stop checking once available
+            clearInterval(checkInterval);
             console.log('✅ Recording is now available!');
           }
         } catch (error) {
           console.error('Failed to check recording:', error);
         }
-      }, 30000); // Check every 30 seconds
+      }, 30000);
 
       return () => clearInterval(checkInterval);
     }
   }, [showReportModal, selectedReport]);
 
-  // AUTO-ANALYZE VIDEO FRAMES WITH CLAUDE VISION
+  // Analyze the video frames with claude
   useEffect(() => {
     if (activeCall && zoomActive) {
       let foundCanvas = false;
@@ -278,13 +249,6 @@ useEffect(() => {
                 .join('\n');
 
               console.log('🚀 Sending resized frame to Claude...');
-
-              // const response = await axios.post('http://localhost:3000/api/emergency/analyze-frame', {
-              //   callId: activeCall.callId,
-              //   frameData,
-              //   emergencyType: activeCall.type,
-              //   recentTranscript,
-              // });
 
 
               const response = await axios.post('https://operatorthing.onrender.com/api/emergency/analyze-frame', {
@@ -341,12 +305,7 @@ useEffect(() => {
     console.log('🤖 Generating real-time AI report...');
 
     try {
-      // const response = await axios.post('http://localhost:3000/api/emergency/generate-report', {
-      //   transcript: liveTranscript,
-      //   emergencyType: activeCall.type,
-      //   location: activeCall.location,
-      //   videoAnalyses: capturedFrames,
-      // });
+
 
       const response = await axios.post('https://operatorthing.onrender.com/api/emergency/generate-report', {
         transcript: liveTranscript,
@@ -384,9 +343,9 @@ useEffect(() => {
       window.URL.revokeObjectURL(url);
 
       console.log('📥 Downloaded complete call report');
-      alert('✅ Report downloaded! Includes:\n• Call details\n• Full transcript\n• Video analyses\n• Saved image paths');
+      alert('Report downloaded! Includes:\n• Call details\n• Full transcript\n• Video analyses\n• Saved image paths');
     } catch (error) {
-      console.error('❌ Failed to download report:', error);
+      console.error('Failed to download report:', error);
       alert('Failed to download report. Check console for details.');
     }
   };
@@ -419,118 +378,10 @@ useEffect(() => {
     }
   };
 
-  // const endCall = async () => {
-  //   if (activeCall) {
-  //     console.log('🔴 END CALL CLICKED:', activeCall.callId);
-
-  //     stopSpeechRecognition();
-
-  //     if (reportIntervalRef.current) {
-  //       clearInterval(reportIntervalRef.current);
-  //     }
-
-  //     if (liveTranscript.length > 0) {
-  //       const transcriptData = {
-  //         callId: activeCall.id,
-  //         emergencyType: activeCall.type,
-  //         location: activeCall.location,
-  //         transcript: liveTranscript,
-  //         finalReport: aiReport,
-  //         startTime: activeCall.timestamp,
-  //         endTime: new Date().toISOString(),
-  //       };
-
-  //       const existingTranscripts = JSON.parse(localStorage.getItem('call_transcripts') || '[]');
-  //       existingTranscripts.push(transcriptData);
-  //       localStorage.setItem('call_transcripts', JSON.stringify(existingTranscripts));
-
-  //       console.log('💾 Transcript and report saved');
-  //     }
-
-  //     // Remove the call from the list immediately
-  //     setCalls(prevCalls => prevCalls.filter(c => c.callId !== activeCall.callId));
-
-  //     // Clear all active call state
-  //     setActiveCall(null);
-  //     setZoomActive(false);
-  //     setLiveTranscript([]);
-  //     setAiReport('');
-  //     setVideoAnalysis(null);
-  //     setCapturedFrames([]);
-
-  //     // Hide Zoom container
-  //     const zoomContainer = document.getElementById('zmmtg-root');
-  //     if (zoomContainer) {
-  //       zoomContainer.className = 'zoom-hidden';
-  //     }
-
-  //     // Leave Zoom meeting
-  //     if (window.ZoomMtg) {
-  //       window.ZoomMtg.leaveMeeting({});
-  //     }
-  //   }
-  // };
-
-
-
-  // const endCall = async () => {
-  //   if (activeCall) {
-  //     console.log('🔴 END CALL CLICKED:', activeCall.callId);
-
-  //     stopSpeechRecognition();
-
-  //     if (reportIntervalRef.current) {
-  //       clearInterval(reportIntervalRef.current);
-  //     }
-
-  //     // Save complete report to localStorage
-  //     const completeReport = {
-  //       callId: activeCall.callId,
-  //       emergencyType: activeCall.type,
-  //       location: activeCall.location,
-  //       transcript: liveTranscript,
-  //       videoAnalyses: capturedFrames,
-  //       aiReport: aiReport,
-  //       startTime: activeCall.timestamp,
-  //       endTime: new Date().toISOString(),
-  //       savedAt: new Date().toISOString(),
-  //     };
-
-  //     const existingReports = JSON.parse(localStorage.getItem('emergency_reports') || '[]');
-  //     existingReports.push(completeReport);
-  //     localStorage.setItem('emergency_reports', JSON.stringify(existingReports));
-  //     setPastCalls(existingReports);
-
-  //     console.log('💾 Complete report saved to localStorage');
-
-  //     // Remove the call from the list immediately
-  //     setCalls(prevCalls => prevCalls.filter(c => c.callId !== activeCall.callId));
-
-  //     // Clear all active call state
-  //     setActiveCall(null);
-  //     setZoomActive(false);
-  //     setLiveTranscript([]);
-  //     setAiReport('');
-  //     setVideoAnalysis(null);
-  //     setCapturedFrames([]);
-
-  //     // Hide Zoom container
-  //     const zoomContainer = document.getElementById('zmmtg-root');
-  //     if (zoomContainer) {
-  //       zoomContainer.className = 'zoom-hidden';
-  //     }
-
-  //     // Leave Zoom meeting
-  //     if (window.ZoomMtg) {
-  //       window.ZoomMtg.leaveMeeting({});
-  //     }
-  //   }
-  // };
-
 
   const endCall = async () => {
     if (activeCall) {
-      console.log('🔴 END CALL CLICKED:', activeCall.callId);
+      console.log('END CALL CLICKED:', activeCall.callId);
 
       stopSpeechRecognition();
 
@@ -553,16 +404,16 @@ useEffect(() => {
 
       const existingReports = JSON.parse(localStorage.getItem('emergency_reports') || '[]');
 
-      // ✅ DEDUPLICATE: Check if this call already exists
+      // check if call already exists
       const alreadyExists = existingReports.some((r: any) => r.callId === activeCall.callId);
 
       if (!alreadyExists) {
         existingReports.push(completeReport);
         localStorage.setItem('emergency_reports', JSON.stringify(existingReports));
         setPastCalls(existingReports);
-        console.log('💾 Complete report saved to localStorage');
+        console.log('Complete report saved to localStorage');
       } else {
-        console.log('⚠️ Report already saved, skipping duplicate');
+        console.log(' Report already saved, skipping duplicate');
       }
 
       // Remove the call from the list immediately
@@ -918,97 +769,75 @@ END OF REPORT
                   </div>
                 </div>
 
-                {/* <div className="info-section">
+                <div className="info-section">
                   <div className="section-title">Call Information</div>
                   <div className="info-grid">
                     <div className="info-item">
                       <span className="info-label">Caller</span>
-                      <span className="info-value">{activeCall.callerName || 'Unknown'}</span>
+                      <span className="info-value">{activeCall.userInfo?.name || activeCall.callerName || 'Unknown'}</span>
                     </div>
                     <div className="info-item">
                       <span className="info-label">Time Elapsed</span>
                       <span className="info-value">{getTimeSince(activeCall.timestamp)}</span>
                     </div>
+
                     <div className="info-item">
                       <span className="info-label">Call ID</span>
-                      <span className="info-value">#{activeCall.id.slice(-6)}</span>
+                      <span className="info-value" style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                        {activeCall.callId}
+                      </span>
+                    </div>
+
+
+                    <div className="info-item">
+                      <span className="info-label">Call ID</span>
+                      <span className="info-value">{activeCall.callId}</span>
                     </div>
                     <div className="info-item">
                       <span className="info-label">Priority</span>
                       <span className="info-value priority-high">HIGH</span>
                     </div>
+
+                    {/* ADD NEW USER INFO FIELDS */}
+                    {activeCall.userInfo?.age && (
+                      <div className="info-item">
+                        <span className="info-label">Age</span>
+                        <span className="info-value">{activeCall.userInfo.age}</span>
+                      </div>
+                    )}
+                    {activeCall.userInfo?.phone && (
+                      <div className="info-item">
+                        <span className="info-label">Phone</span>
+                        <span className="info-value">{activeCall.userInfo.phone}</span>
+                      </div>
+                    )}
                   </div>
-                </div> */}
 
-                <div className="info-section">
-  <div className="section-title">Call Information</div>
-  <div className="info-grid">
-    <div className="info-item">
-      <span className="info-label">Caller</span>
-      <span className="info-value">{activeCall.userInfo?.name || activeCall.callerName || 'Unknown'}</span>
-    </div>
-    <div className="info-item">
-      <span className="info-label">Time Elapsed</span>
-      <span className="info-value">{getTimeSince(activeCall.timestamp)}</span>
-    </div>
-
-     <div className="info-item">
-      <span className="info-label">Call ID</span>
-      <span className="info-value" style={{ fontFamily: 'monospace', fontSize: '13px' }}>
-        {activeCall.callId}
-      </span>
-    </div>
-
-
-    <div className="info-item">
-      <span className="info-label">Call ID</span>
-      <span className="info-value">{activeCall.callId}</span>
-    </div>
-    <div className="info-item">
-      <span className="info-label">Priority</span>
-      <span className="info-value priority-high">HIGH</span>
-    </div>
-    
-    {/* ✅ ADD NEW USER INFO FIELDS */}
-    {activeCall.userInfo?.age && (
-      <div className="info-item">
-        <span className="info-label">Age</span>
-        <span className="info-value">{activeCall.userInfo.age}</span>
-      </div>
-    )}
-    {activeCall.userInfo?.phone && (
-      <div className="info-item">
-        <span className="info-label">Phone</span>
-        <span className="info-value">{activeCall.userInfo.phone}</span>
-      </div>
-    )}
-  </div>
-  
-  {/* ✅ ADD MEDICAL CONDITIONS SECTION */}
-  {activeCall.userInfo?.medicalConditions && (
-    <div style={{
-      marginTop: '16px',
-      padding: '12px',
-      background: 'rgba(239, 68, 68, 0.1)',
-      border: '1px solid rgba(239, 68, 68, 0.3)',
-      borderRadius: '8px'
-    }}>
-      <div style={{ 
-        fontSize: '12px', 
-        color: '#ef4444', 
-        fontWeight: 'bold', 
-        marginBottom: '6px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px'
-      }}>
-        ⚕️ Medical Conditions
-      </div>
-      <div style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6' }}>
-        {activeCall.userInfo.medicalConditions}
-      </div>
-    </div>
-  )}
-</div>
+                  {/* ADD MEDICAL CONDITIONS SECTION */}
+                  {activeCall.userInfo?.medicalConditions && (
+                    <div style={{
+                      marginTop: '16px',
+                      padding: '12px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#ef4444',
+                        fontWeight: 'bold',
+                        marginBottom: '6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        ⚕️ Medical Conditions
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6' }}>
+                        {activeCall.userInfo.medicalConditions}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="info-section">
                   <div className="section-title">Location Details</div>
@@ -1321,7 +1150,7 @@ END OF REPORT
                     </button>
                   )}
 
-                  
+
                   <button
                     className="end-call-btn"
                     onClick={endCall}
@@ -1522,90 +1351,6 @@ END OF REPORT
                     </div>
                   </div>
 
-                  {/* Zoom Recording */}
-                  {/* <div style={{
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    marginBottom: '20px',
-                  }}>
-                    <h3 style={{ color: '#ef4444', margin: '0 0 16px 0', fontSize: '18px' }}>Zoom Recording</h3>
-
-                    {selectedReport.recording?.available ? (
-                      <div>
-                        <div style={{ marginBottom: '16px', color: '#10b981', fontSize: '14px', fontWeight: 'bold' }}>
-                          ✅ Recording Available
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                          {selectedReport.recording.videoUrl && (
-                            <a
-                              href={selectedReport.recording.videoUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: 'inline-block',
-                                padding: '12px 24px',
-                                background: '#ef4444',
-                                color: 'white',
-                                borderRadius: '8px',
-                                textDecoration: 'none',
-                                fontWeight: 'bold',
-                                fontSize: '14px',
-                              }}
-                            >
-                              📹 Watch Video
-                            </a>
-                          )}
-
-                          {selectedReport.recording.audioUrl && (
-                            <a
-                              href={selectedReport.recording.audioUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: 'inline-block',
-                                padding: '12px 24px',
-                                background: '#8b5cf6',
-                                color: 'white',
-                                borderRadius: '8px',
-                                textDecoration: 'none',
-                                fontWeight: 'bold',
-                                fontSize: '14px',
-                              }}
-                            >
-                              🎵 Listen Audio
-                            </a>
-                          )}
-
-                          {selectedReport.recording.transcriptUrl && (
-                            <a
-                              href={selectedReport.recording.transcriptUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: 'inline-block',
-                                padding: '12px 24px',
-                                background: '#3b82f6',
-                                color: 'white',
-                                borderRadius: '8px',
-                                textDecoration: 'none',
-                                fontWeight: 'bold',
-                                fontSize: '14px',
-                              }}
-                            >
-                              📝 Transcript
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ color: '#f59e0b', fontSize: '14px' }}>
-                        ⏳ {selectedReport.recording?.message || 'Recording processing or not available'}
-                      </div>
-                    )}
-                  </div> */}
 
                   {/* Zoom Recording */}
                   <div style={{

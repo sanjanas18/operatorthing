@@ -24,7 +24,7 @@ export const getCallRecording = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Call not found' });
     }
 
-    console.log('🎥 Fetching recording for call:', callId);
+    console.log('Fetching recording for call:', callId);
     
     const recording = await ZoomRecordingService.getRecording(call.meetingNumber);
 
@@ -35,50 +35,10 @@ export const getCallRecording = async (req: Request, res: Response) => {
   }
 };
 
-// export const createCall = async (req: Request, res: Response) => {
-//   try {
-//     const { emergencyType, location } = req.body;
-
-//     if (!emergencyType || !location) {
-//       return res.status(400).json({ error: 'Missing emergencyType or location' });
-//     }
-
-//     const meeting = await ZoomService.createMeeting({ emergencyType, location });
-//     const callerSignature = ZoomService.getCallerSignature(meeting.meetingNumber);
-
-//     const callId = `call_${Date.now()}`;
-
-//     const callData = {
-//       callId,
-//       meetingNumber: meeting.meetingNumber,
-//       password: meeting.password || '', // ← ADD THIS
-//       emergencyType,
-//       location,
-//       status: 'active',
-//       createdAt: new Date().toISOString(),
-//     };
-
-//     activeCalls.set(callId, callData);
-
-//     res.json({
-//       callId,
-//       meetingNumber: meeting.meetingNumber,
-//       password: meeting.password || '', // ← ADD THIS
-//       signature: callerSignature,
-//       sdkKey: meeting.sdkKey,
-//       userName: meeting.callerId,
-//       location,
-//       emergencyType,
-//     });
-//   } catch (error: any) {
-//     console.error('Error creating call:', error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
 
 export const createCall = async (req: Request, res: Response) => {
   try {
-    const { emergencyType, location, userInfo } = req.body; // ✅ ADD userInfo
+    const { emergencyType, location, userInfo } = req.body;
 
     if (!emergencyType || !location) {
       return res.status(400).json({ error: 'Missing emergencyType or location' });
@@ -133,7 +93,7 @@ export const joinCall = async (req: Request, res: Response) => {
     res.json({
       callId,
       meetingNumber: call.meetingNumber,
-      password: call.password, // ← MAKE SURE THIS LINE EXISTS
+      password: call.password,
       signature: operatorSignature,
       sdkKey: process.env.ZOOM_SDK_KEY,
       userName: `operator_${Date.now()}`,
@@ -176,29 +136,6 @@ export const endCall = (req: Request, res: Response) => {
   res.json({ message: 'Call ended', call });
 };
 
-// export const generateReport = async (req: Request, res: Response) => {
-//   try {
-//     const { transcript, emergencyType, location } = req.body;
-
-//     if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
-//       return res.status(400).json({ error: 'Transcript is required' });
-//     }
-
-//     console.log('📝 Generating report for', transcript.length, 'transcript items');
-
-//     const report = await PerplexityService.generateReport(
-//       transcript,
-//       emergencyType || 'unknown',
-//       location || {}
-//     );
-
-//     res.json({ report });
-//   } catch (error: any) {
-//     console.error('Error generating report:', error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
 export const generateReport = async (req: Request, res: Response) => {
   try {
     const { transcript, emergencyType, location, callId, videoAnalyses } = req.body;
@@ -207,7 +144,7 @@ export const generateReport = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Transcript is required' });
     }
 
-    console.log('📝 Generating report for', transcript.length, 'transcript items');
+    console.log('Generating report for', transcript.length, 'transcript items');
 
     // Get user info from active call
     let userInfo = null;
@@ -215,7 +152,7 @@ export const generateReport = async (req: Request, res: Response) => {
       const call = activeCalls.get(callId);
       if (call && call.userInfo) {
         userInfo = call.userInfo;
-        console.log('👤 Including user info:', userInfo.name);
+        console.log('Including user info:', userInfo.name);
       }
     }
 
@@ -223,8 +160,8 @@ export const generateReport = async (req: Request, res: Response) => {
       transcript,
       emergencyType || 'unknown',
       location || {},
-      userInfo,  // ✅ PASS USER INFO
-      videoAnalyses,  // video analyses
+      userInfo,  
+      videoAnalyses, 
       callId
     );
 
@@ -251,9 +188,9 @@ export const analyzeVideoFrame = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing callId or frameData' });
     }
 
-    console.log('🔍 Analyzing video frame for call:', callId);
+    console.log(' Analyzing video frame for call:', callId);
 
-    // Analyze the frame with Claude Vision
+    // Analyze the frame
     const { analysis, imagePath } = await VisionAnalysisService.analyzeEmergencyFrame(
       frameData,
       callId,
@@ -274,7 +211,7 @@ export const analyzeVideoFrame = async (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     });
 
-    // Keep only last 20 frames to save memory
+    // Keep only last 20 frames
     if (frames.length > 20) {
       frames.shift();
     }
@@ -321,57 +258,6 @@ export const getCallReport = async (req: Request, res: Response) => {
   }
 };
 
-// export const downloadCallData = async (req: Request, res: Response) => {
-//   try {
-//     const { callId } = req.params;
-//     const call = activeCalls.get(callId);
-
-
-//     if (!call) {
-//       return res.status(404).json({ error: 'Call not found' });
-//     }
-
-//      if (!callId || typeof callId !== 'string') {
-//       return res.status(400).json({ error: 'Invalid callId' });
-//     }
-
-//     const videoFrames = callVideoFrames.get(callId) || [];
-//     const storedImages = VisionAnalysisService.getStoredFrames(callId);
-
-//     // Get transcript from localStorage (if saved)
-//     // This will be the final transcript saved when call ended
-
-//     // Compile complete report
-//     const completeReport = {
-//       callInfo: {
-//         callId: call.callId,
-//         emergencyType: call.emergencyType,
-//         location: call.location,
-//         status: call.status,
-//         startTime: call.createdAt,
-//         endTime: call.endedAt || new Date().toISOString(),
-//       },
-//       videoAnalyses: videoFrames.map(f => ({
-//         timestamp: f.timestamp,
-//         urgencyLevel: f.analysis.urgencyLevel,
-//         hazards: f.analysis.hazards,
-//         injuries: f.analysis.injuries,
-//         environment: f.analysis.environmentAssessment,
-//         recommendations: f.analysis.recommendations,
-//         rawAnalysis: f.analysis.rawAnalysis,
-//       })),
-//       savedImagePaths: storedImages,
-//       totalFramesAnalyzed: videoFrames.length,
-//       reportGeneratedAt: new Date().toISOString(),
-//     };
-
-//     res.json(completeReport);
-//   } catch (error: any) {
-//     console.error('Error downloading call data:', error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
 export const downloadCallData = async (req: Request, res: Response) => {
   try {
     const { callId } = req.params;
@@ -389,7 +275,7 @@ export const downloadCallData = async (req: Request, res: Response) => {
     const videoFrames = callVideoFrames.get(callId) || [];
     const storedImages = VisionAnalysisService.getStoredFrames(callId);
 
-    // Try to get recording (might not be ready yet)
+    // Try to get recording
     let recordingData = {
       available: false,
       status: 'not_ready',
@@ -447,8 +333,8 @@ export const checkRecordingStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid callId' });
     }
     
-    console.log('🔍 Looking for call:', callId);
-    console.log('📋 Active calls:', Array.from(activeCalls.keys()));
+    console.log('Looking for call:', callId);
+    console.log('Active calls:', Array.from(activeCalls.keys()));
     
     const call = activeCalls.get(callId);
 
@@ -460,7 +346,7 @@ export const checkRecordingStatus = async (req: Request, res: Response) => {
       });
     }
 
-    console.log('✅ Found call:', call.callId, 'Meeting:', call.meetingNumber);
+    console.log('Found call:', call.callId, 'Meeting:', call.meetingNumber);
 
     try {
       const recording = await ZoomRecordingService.getRecording(call.meetingNumber);

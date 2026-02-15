@@ -5,7 +5,7 @@ const router = express.Router();
 
 // SSE endpoint for Poke MCP
 router.get('/mcp/sse', (req, res) => {
-  console.log('📡 SSE connection requested');
+  console.log('SSE connection requested');
   console.log('Headers:', req.headers);
   
   res.setHeader('Content-Type', 'text/event-stream');
@@ -22,22 +22,19 @@ router.get('/mcp/sse', (req, res) => {
   }, 30000);
 
   req.on('close', () => {
-    console.log('📡 SSE connection closed');
+    console.log('SSE connection closed');
     clearInterval(keepAlive);
     res.end();
   });
 });
 
-// MCP JSON-RPC endpoint (POST to /mcp/sse)
+// MCP JSON-RPC endpoint
 router.post('/mcp/sse', (req, res) => {
-  console.log('📨 POST to /mcp/sse');
-  console.log('Headers:', req.headers);
-  console.log('Body:', JSON.stringify(req.body, null, 2));
 
   const { jsonrpc, id, method, params } = req.body;
 
   if (method === 'initialize') {
-    console.log('✅ Initialize request');
+
     return res.json({
       jsonrpc: '2.0',
       id,
@@ -55,7 +52,7 @@ router.post('/mcp/sse', (req, res) => {
   }
 
   if (method === 'tools/list') {
-    console.log('✅ Tools list request');
+    console.log('Tools list request');
     return res.json({
       jsonrpc: '2.0',
       id,
@@ -91,7 +88,7 @@ router.post('/mcp/sse', (req, res) => {
   }
 
   if (method === 'tools/call') {
-    console.log('✅ Tool call request:', params?.name);
+    console.log('Tool call request:', params?.name);
     const { name, arguments: args } = params || {};
 
     if (name === 'list_recent_calls') {
@@ -104,7 +101,6 @@ router.post('/mcp/sse', (req, res) => {
         location: call.location.address,
       }));
 
-      console.log(`📋 Found ${calls.length} calls`);
 
       return res.json({
         jsonrpc: '2.0',
@@ -116,12 +112,12 @@ router.post('/mcp/sse', (req, res) => {
               text: calls.length === 0 
                 ? 'No recent emergency calls found.'
                 : `Recent Emergency Calls:\n\n${calls.map(c => 
-                    `📞 Call ID: ${c.callId}\n` +
-                    `👤 Caller: ${c.callerName}\n` +
-                    `📱 Phone: ${c.phone}\n` +
-                    `🚨 Type: ${c.emergencyType}\n` +
-                    `📍 Location: ${c.location}\n` +
-                    `⏰ Time: ${c.createdAt}`
+                    ` Call ID: ${c.callId}\n` +
+                    ` Caller: ${c.callerName}\n` +
+                    ` Phone: ${c.phone}\n` +
+                    ` Type: ${c.emergencyType}\n` +
+                    ` Location: ${c.location}\n` +
+                    ` Time: ${c.createdAt}`
                   ).join('\n\n---\n\n')}`,
             },
           ],
@@ -167,7 +163,7 @@ router.post('/mcp/sse', (req, res) => {
         });
       }
 
-      const smsReport = `🚨 EMERGENCY REPORT
+      const smsReport = ` EMERGENCY REPORT
 Date: ${new Date(call.createdAt).toLocaleString()}
 
 Patient: ${call.userInfo?.name || 'Unknown'}
@@ -203,7 +199,7 @@ Call ID: ${callId.slice(-8).toUpperCase()}`;
     });
   }
 
-  console.log('❌ Unknown method:', method);
+  console.log(' Unknown method:', method);
   res.json({
     jsonrpc: '2.0',
     id,
