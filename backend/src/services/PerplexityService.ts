@@ -236,10 +236,9 @@ At the end of the report, include:
 
 ---
 CALL REFERENCE:
-Call ID: ${callId || 'Unknown'}
 
 For questions about this call, text FrontLine AI at:
-https://poke.com/r/G-TGICJi2di
+https://poke.com/r/D1PUqhv6LUo
 
 Text your Call ID to get your full report and ask questions anytime.`;
 
