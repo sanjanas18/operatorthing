@@ -1,67 +1,5 @@
 
 
-// import jwt from 'jsonwebtoken';
-
-// class ZoomService {
-//   generateSignature(meetingNumber: string, role: 0 | 1): string {
-//     const sdkKey = process.env.ZOOM_SDK_KEY;
-//     const sdkSecret = process.env.ZOOM_SDK_SECRET;
-
-//     if (!sdkKey || !sdkSecret) {
-//       throw new Error('Zoom SDK credentials not configured');
-//     }
-
-//     const iat = Math.round(Date.now() / 1000) - 30;
-//     const exp = iat + 60 * 60 * 2; // 2 hours
-
-//     const payload = {
-//       sdkKey: sdkKey,
-//       appKey: sdkKey, // Meeting SDK needs this
-//       mn: meetingNumber,
-//       role: role,
-//       iat: iat,
-//       exp: exp,
-//       tokenExp: exp,
-//     };
-
-//     const token = jwt.sign(payload, sdkSecret);
-//     console.log('Generated signature payload:', payload);
-    
-//     return token;
-//   }
-
-//   createMeeting(data: {
-//     emergencyType: string;
-//     location: { latitude: number; longitude: number; address?: string };
-//   }): {
-//     meetingNumber: string;
-//     callerId: string;
-//     operatorId: string;
-//     sdkKey: string;
-//   } {
-//     const meetingNumber = Date.now().toString();
-//     const callerId = `caller_${Date.now()}`;
-//     const operatorId = `operator_${Date.now()}`;
-
-//     return {
-//       meetingNumber,
-//       callerId,
-//       operatorId,
-//       sdkKey: process.env.ZOOM_SDK_KEY || '',
-//     };
-//   }
-
-//   getCallerSignature(meetingNumber: string): string {
-//     return this.generateSignature(meetingNumber, 0);
-//   }
-
-//   getOperatorSignature(meetingNumber: string): string {
-//     return this.generateSignature(meetingNumber, 1);
-//   }
-// }
-
-// export default new ZoomService();
-
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 
@@ -69,92 +7,6 @@ class ZoomService {
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;
 
-  // Get OAuth access token
-//   private async getAccessToken(): Promise<string> {
-//     if (this.accessToken && Date.now() < this.tokenExpiry) {
-//       return this.accessToken;
-//     }
-
-//     const accountId = process.env.ZOOM_ACCOUNT_ID;
-//     const clientId = process.env.ZOOM_CLIENT_ID;
-//     const clientSecret = process.env.ZOOM_CLIENT_SECRET;
-
-//     if (!accountId || !clientId || !clientSecret) {
-//       throw new Error('❌ Missing Zoom OAuth credentials in .env');
-//     }
-
-//     try {
-//       console.log('🔑 Getting Zoom access token...');
-      
-//       const response = await axios.post(
-//         `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${accountId}`,
-//         {},
-//         {
-//           headers: {
-//             'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-//           },
-//         }
-//       );
-
-//       this.accessToken = response.data.access_token;
-//       this.tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
-      
-//       console.log('✅ Got Zoom access token');
-//         return this.accessToken!;
-//     } catch (error: any) {
-//       console.error('❌ OAuth error:', error.response?.data || error.message);
-//       throw new Error('Failed to authenticate with Zoom');
-//     }
-//   }
-
-// private async getAccessToken(): Promise<string> {
-//   // Return cached token if still valid
-//   if (this.accessToken && Date.now() < this.tokenExpiry) {
-//     return this.accessToken;
-//   }
-
-//   const accountId = process.env.ZOOM_ACCOUNT_ID;
-//   const clientId = process.env.ZOOM_CLIENT_ID;
-//   const clientSecret = process.env.ZOOM_CLIENT_SECRET;
-
-//   // DEBUG: Print what we're using (hide most of secret)
-//   console.log('🔍 Using credentials:');
-//   console.log('  Account ID:', accountId);
-//   console.log('  Client ID:', clientId);
-//   console.log('  Client Secret:', clientSecret ? `${clientSecret.substring(0, 5)}...${clientSecret.substring(clientSecret.length - 5)}` : 'MISSING');
-
-//   if (!accountId || !clientId || !clientSecret) {
-//     throw new Error('❌ Missing Zoom OAuth credentials in .env');
-//   }
-
-//   try {
-//     console.log('🔑 Getting Zoom access token...');
-    
-//     const response = await axios.post(
-//       `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${accountId}`,
-//       {},
-//       {
-//         headers: {
-//           'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-//         },
-//       }
-//     );
-
-//     this.accessToken = response.data.access_token;
-//     this.tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
-    
-//     console.log('✅ Got Zoom access token');
-    
-//     if (!this.accessToken) {
-//       throw new Error('Failed to get access token from Zoom');
-//     }
-    
-//     return this.accessToken;
-//   } catch (error: any) {
-//     console.error('❌ OAuth error:', error.response?.data || error.message);
-//     throw new Error('Failed to authenticate with Zoom');
-//   }
-// }
 
 
 
@@ -164,12 +16,15 @@ private async getAccessToken(): Promise<string> {
     return this.accessToken;
   }
 
-  // HARDCODED - Copy the FULL Client Secret from Zoom
+
+  const accountId = process.env.ZOOM_ACCOUNT_ID;
+  const clientId = process.env.ZOOM_CLIENT_ID;
+  const clientSecret = process.env.ZOOM_CLIENT_SECRET;
 
   console.log('🔍 Hardcoded credentials test:');
   console.log('  Account ID:', accountId);
   console.log('  Client ID:', clientId);
-  console.log('  Client Secret length:', clientSecret.length, 'chars');
+//   console.log('  Client Secret length:', clientSecret.length, 'chars');
   console.log('  Client Secret preview:', clientSecret ? `${clientSecret.substring(0, 5)}...${clientSecret.substring(clientSecret.length - 5)}` : 'EMPTY!');
 
   if (!accountId || !clientId || !clientSecret) {
