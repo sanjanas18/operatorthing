@@ -2,20 +2,63 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
   ActivityIndicator,
   Linking,
   SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
-// const API_URL = 'https://shoes-van-tell-match.trycloudflare.com'; // 🔁 update tunnel URL as needed
+//const API_URL = 'http://localhost:3000';
+const API_URL = 'https://references-absolutely-matching-aud.trycloudflare.com'; // 🔁 update tunnel URL as needed
+
+interface UserData {
+  name: string;
+  age: string;
+  phone: string;
+  medicalConditions: string;
+}
 
 export default function EmergencyCallScreen() {
+  // User data state - persists as long as app is open
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [calling, setCalling] = useState(false);
+
+  // Form states
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [phone, setPhone] = useState('');
+  const [medicalConditions, setMedicalConditions] = useState('');
+
+  const clearUserData = () => {
+    setUserData(null);
+    setName('');
+    setAge('');
+    setPhone('');
+    setMedicalConditions('');
+  };
+
+  const handleContinue = () => {
+    if (name.trim() === '' || age.trim() === '') {
+      Alert.alert('Required Fields', 'Please enter your name and age');
+      return;
+    }
+
+    const data: UserData = {
+      name: name.trim(),
+      age: age.trim(),
+      phone: phone.trim(),
+      medicalConditions: medicalConditions.trim(),
+    };
+
+    setUserData(data);
+  };
 
   const startEmergencyCall = async () => {
     setCalling(true);
@@ -27,17 +70,20 @@ export default function EmergencyCallScreen() {
           longitude: -122.4194,
           address: 'San Francisco, CA',
         },
+        userInfo: {
+          name: userData?.name || 'Unknown',
+          age: userData?.age || 'Unknown',
+          phone: userData?.phone || 'Not provided',
+          medicalConditions: userData?.medicalConditions || 'None reported',
+        },
       });
 
-      const { meetingNumber, signature, sdkKey, userName, password } = response.data;
+      const { meetingNumber, password } = response.data;
 
       console.log('✅ Meeting created:', meetingNumber);
 
-      // Build Zoom web client URL
-    const zoomUrl = `https://zoom.us/wc/${meetingNumber}/join?pwd=${password}`;
-    //const zoomUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
+      const zoomUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
 
-      // Open in Safari
       const canOpen = await Linking.canOpenURL(zoomUrl);
 
       if (canOpen) {
@@ -58,30 +104,146 @@ export default function EmergencyCallScreen() {
     }
   };
 
+  // INTRO SCREEN - Show if no user data
+  if (!userData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>FrontLine</Text>
+              <Text style={styles.headerSubtitle}>
+                Please provide your information for emergency response coordination.
+              </Text>
+            </View>
+
+            {/* Form */}
+            <View style={styles.form}>
+              {/* Name */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Full Name <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="John Doe"
+                  placeholderTextColor="#64748b"
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                />
+              </View>
+
+              {/* Age */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Age <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="25"
+                  placeholderTextColor="#64748b"
+                  value={age}
+                  onChangeText={setAge}
+                  keyboardType="number-pad"
+                  returnKeyType="next"
+                />
+              </View>
+
+              {/* Phone */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Phone Number (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="+1 (555) 123-4567"
+                  placeholderTextColor="#64748b"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  returnKeyType="next"
+                />
+              </View>
+
+              {/* Medical Conditions */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Medical Conditions (Optional)</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Allergies, chronic conditions, medications..."
+                  placeholderTextColor="#64748b"
+                  value={medicalConditions}
+                  onChangeText={setMedicalConditions}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  returnKeyType="done"
+                />
+              </View>
+            </View>
+
+            {/* Continue Button */}
+            <TouchableOpacity
+              style={[
+                styles.continueBtn,
+                (name.trim() === '' || age.trim() === '') && styles.continueBtnDisabled,
+              ]}
+              onPress={handleContinue}
+              disabled={name.trim() === '' || age.trim() === ''}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.continueBtnText}>Continue</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.privacy}>
+              Your information is secured and will only be shared with emergency responders during active calls.
+            </Text>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  // EMERGENCY SCREEN - Show if user data exists
   return (
     <SafeAreaView style={styles.container}>
-
       {/* Navbar */}
       <View style={styles.navbar}>
-        <Text style={styles.navIcon}>🚨</Text>
-        <Text style={styles.navTitle}>Emergency Dispatch</Text>
-        <View style={styles.onlinePill}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.onlineText}>Online</Text>
+        <View style={styles.navLeft}>
+          <View style={styles.statusIndicator} />
+          <Text style={styles.navTitle}>FrontLine</Text>
+        </View>
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>ACTIVE</Text>
         </View>
       </View>
 
       {/* Main content */}
       <View style={styles.body}>
-
-        {/* Big icon ring */}
-        <View style={styles.iconRing}>
-          <Text style={styles.icon}>🆘</Text>
+        {/* User info card */}
+        <View style={styles.userCard}>
+          <Text style={styles.userLabel}>Registered User</Text>
+          <Text style={styles.userName}>{userData.name}</Text>
+          {userData.age && (
+            <Text style={styles.userDetail}>Age: {userData.age}</Text>
+          )}
+          {userData.phone && (
+            <Text style={styles.userDetail}>Contact: {userData.phone}</Text>
+          )}
         </View>
 
-        <Text style={styles.title}>Need Help?</Text>
+        <View style={styles.divider} />
+
+        <Text style={styles.title}>Emergency Assistance</Text>
         <Text style={styles.subtitle}>
-          Press the button below to instantly connect with an emergency responder via video call.
+          Connect with emergency response services via secure video call. Your location and medical information will be transmitted automatically.
         </Text>
 
         {/* THE button */}
@@ -97,19 +259,32 @@ export default function EmergencyCallScreen() {
               <Text style={styles.callBtnText}>Connecting...</Text>
             </>
           ) : (
-            <>
-              <Text style={styles.callBtnIcon}>📞</Text>
-              <Text style={styles.callBtnText}>EMERGENCY CALL</Text>
-            </>
+            <Text style={styles.callBtnText}>INITIATE EMERGENCY CALL</Text>
           )}
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
-          📍 Your location will be shared with emergency responders
+          GPS coordinates and medical history will be shared with emergency services
         </Text>
 
+        {/* Reset button */}
+        <TouchableOpacity
+          style={styles.resetBtn}
+          onPress={() => {
+            Alert.alert(
+              'Clear Registration',
+              'Remove your registered information from this device?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Clear', style: 'destructive', onPress: clearUserData },
+              ]
+            );
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.resetBtnText}>Clear Registration</Text>
+        </TouchableOpacity>
       </View>
-
     </SafeAreaView>
   );
 }
@@ -117,121 +292,231 @@ export default function EmergencyCallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0a0f1c',
   },
 
-  // Navbar
+  // INTRO SCREEN STYLES
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 32,
+    paddingTop: 60,
+  },
+  header: {
+    marginBottom: 48,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: '#8b92a8',
+    lineHeight: 22,
+    fontWeight: '400',
+  },
+  form: {
+    gap: 20,
+    marginBottom: 40,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#b4b9c8',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  },
+  required: {
+    color: '#dc2626',
+  },
+  input: {
+    backgroundColor: '#151b2e',
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '400',
+  },
+  textArea: {
+    minHeight: 100,
+    paddingTop: 14,
+  },
+  continueBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueBtnDisabled: {
+    backgroundColor: '#1f2937',
+    opacity: 0.5,
+  },
+  continueBtnText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  privacy: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 24,
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+
+  // EMERGENCY SCREEN STYLES
   navbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: '#1e293b',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: '#0f1419',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(148,163,184,0.1)',
-    gap: 10,
+    borderBottomColor: '#1f2937',
   },
-  navIcon: { fontSize: 24 },
-  navTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#f1f5f9',
-    letterSpacing: 0.3,
-  },
-  onlinePill: {
+  navLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(16,185,129,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
+    gap: 12,
   },
-  onlineDot: {
-    width: 7,
-    height: 7,
+  statusIndicator: {
+    width: 8,
+    height: 8,
     borderRadius: 4,
     backgroundColor: '#10b981',
   },
-  onlineText: {
-    fontSize: 12,
+  navTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    letterSpacing: 0.2,
+  },
+  statusBadge: {
+    backgroundColor: 'rgba(16,185,129,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#10b981',
+    letterSpacing: 0.5,
   },
-
-  // Body
   body: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    gap: 24,
   },
-
-  iconRing: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 3,
-    borderColor: 'rgba(239,68,68,0.4)',
-    backgroundColor: 'rgba(239,68,68,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  userCard: {
+    backgroundColor: '#151b2e',
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    borderRadius: 8,
+    padding: 20,
+    width: '100%',
+    marginBottom: 24,
+  },
+  userLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6b7280',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
     marginBottom: 8,
   },
-  icon: { fontSize: 64 },
-
+  userName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 8,
+    letterSpacing: -0.3,
+  },
+  userDetail: {
+    fontSize: 14,
+    color: '#8b92a8',
+    marginTop: 4,
+    fontWeight: '400',
+  },
+  divider: {
+    width: 60,
+    height: 1,
+    backgroundColor: '#1f2937',
+    marginBottom: 32,
+  },
   title: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: '#f1f5f9',
-    letterSpacing: 0.5,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#ffffff',
+    letterSpacing: -0.5,
+    marginBottom: 12,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#94a3b8',
+    fontSize: 14,
+    color: '#8b92a8',
     textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: 300,
+    lineHeight: 21,
+    maxWidth: 320,
+    marginBottom: 32,
+    fontWeight: '400',
   },
-
-  // Call Button
   callBtn: {
-    backgroundColor: '#ef4444',
-    borderRadius: 18,
-    paddingVertical: 22,
+    backgroundColor: '#dc2626',
+    borderRadius: 8,
+    paddingVertical: 18,
     paddingHorizontal: 48,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
     width: '100%',
-    marginTop: 8,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    flexDirection: 'row',
+    gap: 10,
   },
   callBtnCalling: {
-    backgroundColor: '#64748b',
-    shadowOpacity: 0,
+    backgroundColor: '#4b5563',
   },
-  callBtnIcon: { fontSize: 24 },
   callBtnText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: 1.2,
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-
   disclaimer: {
-    fontSize: 13,
-    color: '#475569',
+    fontSize: 12,
+    color: '#6b7280',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 16,
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+  resetBtn: {
+    marginTop: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  resetBtnText: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });
