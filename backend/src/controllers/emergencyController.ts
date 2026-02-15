@@ -95,7 +95,7 @@ export const createCall = async (req: Request, res: Response) => {
       password: meeting.password || '',
       emergencyType,
       location,
-      userInfo: userInfo || {}, // ✅ STORE USER INFO
+      userInfo: userInfo || {}, 
       status: 'active',
       createdAt: new Date().toISOString(),
     };
@@ -111,6 +111,7 @@ export const createCall = async (req: Request, res: Response) => {
       userName: meeting.callerId,
       location,
       emergencyType,
+      userInfo: callData.userInfo,
     });
   } catch (error: any) {
     console.error('Error creating call:', error);
