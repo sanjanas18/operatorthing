@@ -446,7 +446,12 @@ function App() {
       clearInterval(reportIntervalRef.current);
     }
 
-    // ✅ Send complete call data to backend
+    const limitedFrames = capturedFrames.slice(-20).map(frame => ({
+      timestamp: frame.timestamp,
+      analysis: frame.analysis,
+    }));
+
+    //  Send complete call data to backend
     try {
       await axios.post('https://operatorthing.onrender.com/api/emergency/save-completed', {
         callId: activeCall.callId,
