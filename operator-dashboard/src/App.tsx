@@ -322,10 +322,10 @@ function App() {
 
   const getEmergencyIcon = (type: string) => {
     switch (type) {
-      case 'medical': return '🚑';
-      case 'fire': return '🚒';
-      case 'police': return '🚓';
-      default: return '⚠️';
+      case 'medical': return 'MED';
+      case 'fire': return 'FIRE';
+      case 'police': return 'POL';
+      default: return 'EMRG';
     }
   };
 
@@ -352,32 +352,18 @@ function App() {
 
   return (
     <div className="app">
-      {/* Zoom Container */}
+      {/* Zoom Container - Left 50% of screen */}
       <div 
         id="zmmtg-root" 
-        style={{
-          display: zoomActive ? 'block' : 'none',
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          width: '500px',
-          height: '400px',
-          zIndex: 9999,
-          background: '#000',
-          borderRadius: '12px',
-          overflow: 'visible',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-          border: '2px solid rgba(16, 185, 129, 0.5)'
-        }}
+        className={zoomActive ? '' : 'zoom-hidden'}
       ></div>
 
       {/* Top Navigation Bar */}
-      <nav className="navbar">
+      <nav className={`navbar ${zoomActive ? 'zoom-active' : ''}`}>
         <div className="nav-content">
           <div className="nav-left">
             <div className="logo">
-              <span className="logo-icon">◆</span>
-              <span className="logo-text">Emergency Dispatch</span>
+              <span className="logo-text">FrontLine</span>
             </div>
           </div>
           
@@ -397,24 +383,15 @@ function App() {
                 hour12: true 
               })}
             </div>
-            <div className="operator-badge">
-              <div className="operator-avatar">OP</div>
-              <span>Operator #247</span>
-            </div>
           </div>
         </div>
       </nav>
 
       {/* Main Dashboard */}
-      <div className="dashboard">
+      <div className={`dashboard ${zoomActive ? 'zoom-active' : ''}`}>
         {/* Stats Bar */}
         <div className="stats-bar">
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-              </svg>
-            </div>
             <div className="stat-content">
               <div className="stat-value">{incomingCalls.length}</div>
               <div className="stat-label">Incoming</div>
@@ -422,11 +399,6 @@ function App() {
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
             <div className="stat-content">
               <div className="stat-value">{activeCalls.length}</div>
               <div className="stat-label">Active</div>
@@ -434,12 +406,6 @@ function App() {
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-              </svg>
-            </div>
             <div className="stat-content">
               <div className="stat-value">{calls.length}</div>
               <div className="stat-label">Total</div>
@@ -447,12 +413,6 @@ function App() {
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
-            </div>
             <div className="stat-content">
               <div className="stat-value">--</div>
               <div className="stat-label">Avg Response</div>
@@ -497,31 +457,18 @@ function App() {
                   <div className="call-content">
                     <div className="call-header-row">
                       <div className="emergency-badge" style={{ background: getEmergencyColor(call.type) }}>
-                        <span className="badge-icon">{getEmergencyIcon(call.type)}</span>
-                        <span className="badge-text">{call.type.toUpperCase()}</span>
+                        <span className="badge-text">{getEmergencyIcon(call.type)}</span>
                       </div>
                       <div className="call-time">{getTimeSince(call.timestamp)}</div>
                     </div>
 
                     {call.callerName && (
                       <div className="caller-info">
-                        <span className="caller-icon">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                          </svg>
-                        </span>
                         <span className="caller-name">{call.callerName}</span>
                       </div>
                     )}
 
                     <div className="location-row">
-                      <span className="location-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                          <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                      </span>
                       <span className="location-text">{call.location.address}</span>
                     </div>
 
@@ -568,11 +515,6 @@ function App() {
 
               {calls.filter(c => c.status !== 'ended').length === 0 && (
                 <div className="empty-queue">
-                  <div className="empty-icon">
-                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.4">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
                   <div className="empty-title">All Clear</div>
                   <div className="empty-subtitle">No pending emergency calls</div>
                   <div style={{ marginTop: '20px', fontSize: '13px', color: '#64748b' }}>
@@ -598,9 +540,8 @@ function App() {
             {activeCall ? (
               <div className="active-content">
                 <div className="emergency-header" style={{ background: getEmergencyColor(activeCall.type) }}>
-                  <div className="header-icon">{getEmergencyIcon(activeCall.type)}</div>
                   <div className="header-text">
-                    <div className="header-title">{activeCall.type.toUpperCase()} EMERGENCY</div>
+                    <div className="header-title">{getEmergencyIcon(activeCall.type)} EMERGENCY</div>
                     <div className="header-subtitle">Response in Progress</div>
                   </div>
                 </div>
@@ -671,13 +612,6 @@ function App() {
                         textAlign: 'center',
                         padding: '40px 20px'
                       }}>
-                        <div style={{ fontSize: '36px', marginBottom: '10px', opacity: 0.6 }}>
-                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                          </svg>
-                        </div>
                         <div>AI analysis will appear here...</div>
                         <div style={{ fontSize: '12px', marginTop: '8px' }}>
                           Report generates automatically every 10 seconds
@@ -705,14 +639,6 @@ function App() {
                         textAlign: 'center', 
                         padding: '30px 20px' 
                       }}>
-                        <div style={{ fontSize: '40px', marginBottom: '10px', opacity: 0.6 }}>
-                          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                            <line x1="12" y1="19" x2="12" y2="23"></line>
-                            <line x1="8" y1="23" x2="16" y2="23"></line>
-                          </svg>
-                        </div>
                         <div>Live transcription will appear here...</div>
                         <div style={{ fontSize: '12px', marginTop: '8px' }}>
                           Speak into your microphone to see transcription
@@ -950,13 +876,6 @@ function App() {
                         minHeight: '50px',
                       }}
                     >
-                      <span className="btn-icon" style={{ fontSize: '18px' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                          <polyline points="7 10 12 15 17 10"></polyline>
-                          <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                      </span>
                       <span>DOWNLOAD FULL REPORT</span>
                     </button>
                   )}
@@ -970,23 +889,12 @@ function App() {
                       minHeight: '60px',
                     }}
                   >
-                    <span className="btn-icon" style={{ fontSize: '22px' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                      </svg>
-                    </span>
                     <span>END CALL</span>
                   </button>
                 </div>
               </div>
             ) : (
               <div className="no-active-call">
-                <div className="no-call-icon">
-                  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.4">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                  </svg>
-                </div>
                 <div className="no-call-title">No Active Call</div>
                 <div className="no-call-subtitle">
                   Click on a call card in the queue to begin response
