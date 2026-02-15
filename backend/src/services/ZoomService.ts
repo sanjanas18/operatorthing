@@ -6,7 +6,7 @@ class ZoomService {
     private tokenExpiry: number = 0;
 
     private async getAccessToken(): Promise<string> {
-        // Return cached token if still valid
+        // Return the cached token if there is still one
         if (this.accessToken && Date.now() < this.tokenExpiry) {
             return this.accessToken;
         }
@@ -20,7 +20,6 @@ class ZoomService {
         }
 
         try {
-
             const response = await axios.post(
                 `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${accountId}`,
                 {},

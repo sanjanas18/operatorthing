@@ -18,7 +18,6 @@ class ZoomRecordingService {
             const recordings = response.data.recording_files || [];
             const transcript = response.data.recording_play_passcode;
 
-
             return {
                 available: recordings.length > 0,
                 videoUrl: recordings.find((f: any) => f.file_type === 'MP4')?.download_url || null,
@@ -30,7 +29,7 @@ class ZoomRecordingService {
             };
         } catch (error: any) {
             if (error.response?.status === 404) {
-                console.log('⏳ Recording not ready yet (still processing)');
+                console.log('⏳ Recording not ready yet');
                 return {
                     available: false,
                     processingStatus: 'processing',

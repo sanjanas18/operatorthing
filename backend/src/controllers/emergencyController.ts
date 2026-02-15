@@ -6,8 +6,6 @@ import VisionAnalysisService from '../services/VisionAnalysisService.js';
 
 const activeCalls = new Map();
 
-
-
 import ZoomRecordingService from '../services/ZoomRecordingService.js';
 
 export const getCallRecording = async (req: Request, res: Response) => {
@@ -23,8 +21,6 @@ export const getCallRecording = async (req: Request, res: Response) => {
     if (!call) {
       return res.status(404).json({ error: 'Call not found' });
     }
-
-    console.log('Fetching recording for call:', callId);
     
     const recording = await ZoomRecordingService.getRecording(call.meetingNumber);
 
@@ -312,7 +308,7 @@ export const downloadCallData = async (req: Request, res: Response) => {
         environment: f.analysis.environmentAssessment,
         recommendations: f.analysis.recommendations,
       })),
-      recording: recordingData, // Include recording info
+      recording: recordingData, 
       savedImagePaths: storedImages,
       totalFramesAnalyzed: videoFrames.length,
       reportGeneratedAt: new Date().toISOString(),

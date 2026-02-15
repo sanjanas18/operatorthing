@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import axios from 'axios';
 
@@ -216,7 +215,7 @@ export const useZoom = () => {
                                 result: error.result
                             });
 
-                   
+
                             let errorMsg = 'Failed to join meeting.';
                             if (error.errorMessage) {
                                 errorMsg += '\n\n' + error.errorMessage;

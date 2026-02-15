@@ -5,7 +5,6 @@ import { useZoom } from './hooks/useZoom';
 import './App.css';
 import videoCapture from './utils/videoCapture';
 
-
 interface EmergencyCall {
   id: string;
   callId?: string;
@@ -58,8 +57,6 @@ function App() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
 
-
-
   // Load past calls from localStorage on mount
   useEffect(() => {
     const savedReports = localStorage.getItem('emergency_reports');
@@ -77,7 +74,6 @@ function App() {
 
   // Set up socket connection and listener for call ended
   useEffect(() => {
-    // const newSocket = io('http://localhost:3000');
     const newSocket = io('https://operatorthing.onrender.com');
     setSocket(newSocket);
 
@@ -957,7 +953,7 @@ END OF REPORT
                   )}
                 </div>
 
-                {/* Computer Vision Analysis Panel */}
+                {/* vision Analysis Panel */}
                 {videoAnalysis && (
                   <div className="info-section">
                     <div className="section-title">
@@ -1366,7 +1362,6 @@ END OF REPORT
                         onClick={async () => {
                           setLoadingReport(true);
                           try {
-                            // const response = await axios.get(`http://localhost:3000/api/emergency/recording-status/${selectedReport.callId}`);
                             const response = await axios.get(`https://operatorthing.onrender.com/api/emergency/recording-status/${selectedReport.callId}`);
 
                             console.log('🔍 Recording status:', response.data);
@@ -1377,10 +1372,10 @@ END OF REPORT
                             });
 
                             if (response.data.recording.available) {
-                              alert('✅ Recording is ready!');
+                              alert('Recording is ready!');
                             } else {
                               const minutesSince = response.data.debugInfo?.minutesSinceEnd || 0;
-                              alert(`⏳ Still processing...\n\nTime since call ended: ${minutesSince} minutes\nTypically takes 5-10 minutes`);
+                              alert(`Still processing...\n\nTime since call ended: ${minutesSince} minutes\nTypically takes 5-10 minutes`);
                             }
                           } catch (error) {
                             console.error('Failed to check recording:', error);
@@ -1400,7 +1395,7 @@ END OF REPORT
                           fontWeight: 'bold',
                         }}
                       >
-                        🔄 Check Now
+                        Check Now
                       </button>
                     </div>
 
@@ -1424,7 +1419,7 @@ END OF REPORT
                               marginBottom: '8px',
                             }}
                           >
-                            📹 Watch Video
+                            Watch Video
                           </a>
                         )}
 
