@@ -382,6 +382,38 @@ export const checkRecordingStatus = async (req: Request, res: Response) => {
   }
 };
 
+// export const saveCompletedCall = async (req: Request, res: Response) => {
+//   try {
+//     const { callId, transcript, videoAnalyses, aiReport, startTime, endTime, userInfo, emergencyType, location } = req.body;
+
+//     if (!callId) {
+//       return res.status(400).json({ error: 'callId is required' });
+//     }
+
+//     const completeCallData = {
+//       callId,
+//       userInfo,
+//       emergencyType,
+//       location,
+//       transcript,
+//       videoAnalyses,
+//       aiReport,
+//       startTime,
+//       endTime,
+//       savedAt: new Date().toISOString(),
+//     };
+
+//     completedCalls.set(callId, completeCallData);
+    
+//     console.log('Completed call saved:', callId);
+
+//     res.json({ success: true, message: 'Call data saved' });
+//   } catch (error: any) {
+//     console.error('Error saving completed call:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 export const saveCompletedCall = async (req: Request, res: Response) => {
   try {
     const { callId, transcript, videoAnalyses, aiReport, startTime, endTime, userInfo, emergencyType, location } = req.body;
@@ -405,7 +437,8 @@ export const saveCompletedCall = async (req: Request, res: Response) => {
 
     completedCalls.set(callId, completeCallData);
     
-    console.log('Completed call saved:', callId);
+    activeCalls.delete(callId);
+    
 
     res.json({ success: true, message: 'Call data saved' });
   } catch (error: any) {
